@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "bin": {
-    "uxship-mcp": "./dist/index.js"
+    "uxship-mcp": "dist/index.js"
   },
   "files": [
     "dist/",
