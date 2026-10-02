@@ -97,6 +97,12 @@ jobs:
         working-directory: mcp-server
         run: npx tsc --noEmit
 
+      # integrations/pi/uxship.ts 不属于任何 tsconfig（根目录没有 tsconfig，
+      # 也没有 @types/node），所以它实际上从未被类型检查过。
+      # 这里借 mcp-server 已经装好的 @types/node 查它，不另外引入一套依赖。
+      - name: Typecheck pi extension
+        run: npm run typecheck:pi
+
       - name: Test mcp-server
         working-directory: mcp-server
         run: npm test

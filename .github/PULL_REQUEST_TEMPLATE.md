@@ -20,7 +20,7 @@
 (cd plugin-mastergo && yarn typecheck && yarn test)      # 预期 374 例
 (cd plugin-penpot   && yarn typecheck && yarn test)      # 预期 592 例
 npm run build:server && npm run build:plugin && npm run build:penpot
-npm run license:check && npm run docs:check && npm run skill:check
+npm run license:check && npm run docs:check && npm run skill:check && npm run typecheck:pi
 ```
 
 - [ ] 上述命令全部通过（贴关键输出）

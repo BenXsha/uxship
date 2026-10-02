@@ -17,6 +17,7 @@
     "server:restart": "node scripts/uxship-server.mjs restart",
     "pi:install-extension": "node scripts/install-pi-extension.mjs",
     "pi:verify": "node scripts/verify-pi-hook.mjs",
+    "typecheck:pi": "cd mcp-server && npx tsc --noEmit --strict --skipLibCheck --target esnext --module esnext --moduleResolution bundler --types node ../integrations/pi/uxship.ts",
     "skill:check": "node scripts/sync-skill.mjs --check",
     "skill:sync": "node scripts/sync-skill.mjs",
     "license:check": "node scripts/check-licenses.mjs",
