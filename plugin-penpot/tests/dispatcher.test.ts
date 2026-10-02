@@ -97,7 +97,12 @@ describe('自省类 handler', () => {
     const response = await call('dsl/spec')
     const result = ('result' in response ? response.result : null) as Record<string, any>
     expect(result.supportedElementTypes).toContain('frame')
-    expect(result.unsupportedElementTypes).toContain('instance')
+    // instance 已接线：原先的清单把 `HostAdapter.instantiateComponent` 误报成“尚未接线”，
+    // 而该端口一直存在且有两处在用（team_component_import / node_swap_component）。
+    expect(result.supportedElementTypes).toContain('instance')
+    expect(result.unsupportedElementTypes).not.toContain('instance')
+    // 真正没接线的继续如实列出
+    expect(result.unsupportedElementTypes).toContain('boolean_operation')
     expect(result.nullVsBest.knownDegradations.length).toBeGreaterThan(0)
     expect(result.example.elements).toHaveLength(1)
   })

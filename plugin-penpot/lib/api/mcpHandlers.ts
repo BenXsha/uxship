@@ -8,11 +8,20 @@
 import type { HandlerContext } from './index'
 import type { DSLDocument } from '../dsl/types'
 
-export function handlePing(): unknown {
+/**
+ * 宿主信息类 handler 的返回。
+ *
+ * 字段随能力开关与宿主版本增减（如 capabilities 的 `variants` 只在支持变体时出现），
+ * 所以是**具名开放记录**而不是把每个分支都写成封闭接口 —— 但调用方拿到的是具名类型，
+ * 不是无标记的 `unknown`。
+ */
+type HostInfoResult = Record<string, unknown>
+
+export function handlePing(): HostInfoResult {
   return { ok: true }
 }
 
-export function handleHealthGet(_params: Record<string, unknown>, context: HandlerContext): unknown {
+export function handleHealthGet(_params: Record<string, unknown>, context: HandlerContext): HostInfoResult {
   const host = context.host
   let document: unknown = null
   let error: string | undefined
@@ -33,7 +42,7 @@ export function handleHealthGet(_params: Record<string, unknown>, context: Handl
 }
 
 /** `health/check`：与 `health/get` 同源，供老客户端调用（服务端两处都登记了） */
-export function handleHealthCheck(params: Record<string, unknown>, context: HandlerContext): unknown {
+export function handleHealthCheck(params: Record<string, unknown>, context: HandlerContext): HostInfoResult {
   return handleHealthGet(params, context)
 }
 
@@ -53,7 +62,7 @@ export async function handleFontsList(
 }
 
 /** `notify`：向用户提示（Penpot 无原生 toast，走插件面板） */
-export function handleNotify(params: Record<string, unknown>, context: HandlerContext): unknown {
+export function handleNotify(params: Record<string, unknown>, context: HandlerContext): HostInfoResult {
   const message = typeof params.message === 'string' ? params.message : ''
   if (!message) throw new Error('notify 需要 message')
   const raw = params.options as { type?: string } | undefined
@@ -69,7 +78,7 @@ export function handleNotify(params: Record<string, unknown>, context: HandlerCo
   return { ok: true, notified: message }
 }
 
-export function handleCapabilities(_params: Record<string, unknown>, context: HandlerContext): unknown {
+export function handleCapabilities(_params: Record<string, unknown>, context: HandlerContext): HostInfoResult {
   const capabilities = context.host.getCapabilities()
   return {
     ...capabilities,
@@ -107,7 +116,7 @@ export function handleCapabilities(_params: Record<string, unknown>, context: Ha
  * 只声明**已实现**的部分，避免 AI 按规范生成一堆会被 skipped 的属性。
  * 完整规范见 mcp-server/src/utils/dsl-spec.ts 与 skills/design/rules/08-dsl-specification.md。
  */
-export function handleDSLSpec(): unknown {
+export function handleDSLSpec(): HostInfoResult {
   const example: DSLDocument = {
     version: '2.0',
     elements: [
@@ -134,18 +143,31 @@ export function handleDSLSpec(): unknown {
   return {
     version: '2.0-penpot-subset',
     host: 'penpot',
-    supportedElementTypes: ['frame', 'group', 'rectangle', 'ellipse', 'text', 'svg', 'path', 'component(降级为 frame)'],
-    unsupportedElementTypes: [
+    supportedElementTypes: [
+      'frame',
+      'group',
       'instance',
-      'boolean_operation',
+      'rectangle',
+      'ellipse',
+      'text',
+      'svg',
+      'path',
       'polygon',
       'star',
       'line',
-      'connector',
-      'template',
-      'generator',
-      'tree',
+      'pen',
+      'component(降级为 frame)',
     ],
+    /**
+     * 只列「元素类型本身」就不支持的（`KNOWN_UNSUPPORTED`）：
+     * 这些会在 report.skipped 里带原因出现。
+     *
+     * 曾经的这份清单是错的：`instance` 的理由写着「组件实例化尚未接线」，而
+     * `HostAdapter.instantiateComponent` 一直存在并且有两处在用；`polygon` / `star` / `line`
+     * 也早就落到了 Penpot 的 `createPath` 上。能力声明必须跟着实现走 ——
+     * 否则 AI 会因为这里写着不支持而绕远路，或反过来因为写着支持而以为能跑。
+     */
+    unsupportedElementTypes: ['boolean_operation', 'connector', 'template', 'generator', 'tree'],
     fields: {
       common: ['type', 'name', 'position{x,y}', 'size{width,height}', 'rotation', 'opacity', 'isVisible', 'isLocked', 'cornerRadius', 'topLeftRadius/topRightRadius/bottomLeftRadius/bottomRightRadius', 'blendMode', 'fills', 'strokes', 'strokeWidth(别名 strokeWeight)', 'strokeAlign', 'imageUrl', 'imageScaleMode', 'effects', 'children'],
       layout: ['layoutMode', 'itemSpacing', 'padding*', 'primaryAxisAlignItems', 'counterAxisAlignItems', 'layoutSizingHorizontal', 'layoutSizingVertical', 'layoutPositioning', 'flexWrap', 'primaryAxisSizingMode', 'counterAxisSizingMode', 'clipsContent', 'flexGrow'],

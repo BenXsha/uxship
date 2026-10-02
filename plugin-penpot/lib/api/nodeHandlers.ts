@@ -14,7 +14,8 @@
 import type { HandlerContext } from './index'
 import type { DSLElement } from '../dsl/types'
 import type { HostNode, NodeProperties } from '../host/types'
-import { renderDsl } from '../dsl/renderer'
+import { mergeRenderReports, renderDsl } from '../dsl/renderer'
+import type { RenderReport } from '../dsl/renderer'
 
 function asElement(value: unknown): DSLElement | null {
   if (!value || typeof value !== 'object') return null
@@ -31,12 +32,37 @@ function requireNode(params: Record<string, unknown>, context: HandlerContext): 
   return node
 }
 
-function resolveParent(params: Record<string, unknown>, context: HandlerContext): HostNode | null {
-  const parentId = typeof params.parentId === 'string' ? params.parentId : undefined
-  if (!parentId) return null
+function requireParent(context: HandlerContext, parentId: string): HostNode {
   const parent = context.host.getNodeById(parentId)
   if (!parent) throw new Error(`父节点不存在: ${parentId}（Penpot 只能查当前页）`)
   return parent
+}
+
+function resolveParent(params: Record<string, unknown>, context: HandlerContext): HostNode | null {
+  const parentId = typeof params.parentId === 'string' ? params.parentId : undefined
+  return parentId ? requireParent(context, parentId) : null
+}
+
+/**
+ * 读元素上的 `parentId`（`node_create` 工具契约的 `nodes[].parentId`）。
+ *
+ * 为什么需要探测而不是直接 `element.parentId`：DSL 文档本身**没有“父层”概念**（父层是
+ * `node/create` 的参数），所以 `DSLElement` 不声明这个字段 —— 但工具契约向调用方承诺了它。
+ */
+function elementParentId(element: DSLElement): string | undefined {
+  // SAFETY: `parentId` 属于 node/create 的工具契约（`nodes[].parentId`）而非 DSL 规范；
+  // 只做可缺失探测，不修改 element。
+  const raw = (element as unknown as { parentId?: unknown }).parentId
+  return typeof raw === 'string' && raw ? raw : undefined
+}
+
+/** 摘掉 `parentId`：它不是 DSL 字段，留着会被报成“未知字段（拼写错误？）” */
+function detachParentId(element: DSLElement): DSLElement {
+  if (elementParentId(element) === undefined) return element
+  // SAFETY: 已确认 `parentId` 存在且为字符串，这里只做一次浅拷贝去掉该键；
+  // 其余字段原样保留（仍是 DSLElement 的子集）。
+  const { parentId: _parentId, ...rest } = element as unknown as DSLElement & { parentId?: string }
+  return rest
 }
 
 /**
@@ -60,11 +86,45 @@ export async function handleNodeCreate(
     throw new Error('node/create 需要 element（单个 DSL 元素）或 nodes（DSL 元素数组）')
   }
 
-  return renderDsl(context.host, { elements }, {
-    parent: resolveParent(params, context),
+  const defaultParent = resolveParent(params, context)
+  const renderOptions = {
     zoom: params.focus !== false && params.zoom !== false,
     select: params.select !== false,
-  })
+  }
+
+  /**
+   * 按父层分组渲染：`nodes[].parentId` 是工具契约的一部分（每个节点可以落在不同父层），
+   * 而 `renderDsl` 一次只接一个父层。
+   *
+   * 真机踩到：旧实现把整批元素塞进一次 `renderDsl`（只认 `params.parentId`），于是元素上的
+   * `parentId` 被当成「未知字段（拼写错误？）」报出来，节点全落到了页面根。
+   *
+   * 为什么是“分组”而不是“逐个”：`renderDsl` 每次调用包一个撤销块 —— 逐个渲染会让
+   * 「一次批量 = 一次撤销」失效。同一父层的元素仍然共享一个撤销块。
+   */
+  const groups: Array<{ parent: HostNode | null; elements: DSLElement[] }> = []
+  const groupIndexByParent = new Map<string, number>()
+  for (const element of elements) {
+    const explicit = elementParentId(element)
+    const parent = explicit ? requireParent(context, explicit) : defaultParent
+    const key = parent?.id ?? ''
+    const at = groupIndexByParent.get(key)
+    const detached = detachParentId(element)
+    if (at === undefined) {
+      groupIndexByParent.set(key, groups.length)
+      groups.push({ parent, elements: [detached] })
+    } else {
+      groups[at].elements.push(detached)
+    }
+  }
+
+  const reports: RenderReport[] = []
+  for (const group of groups) {
+    reports.push(
+      await renderDsl(context.host, { elements: group.elements }, { ...renderOptions, parent: group.parent }),
+    )
+  }
+  return mergeRenderReports(reports)
 }
 
 /** `node/batchCreate`：与 node/create 的数组形式同义（服务端按实参形状选路到这里） */

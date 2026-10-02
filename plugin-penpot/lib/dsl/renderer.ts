@@ -136,7 +136,6 @@ const DSL_TYPE_TO_KIND: Record<string, NodeKind> = {
 
 /** 明确「知道但不支持」的 DSL 类型：报原因，而不是报「未知类型」 */
 const KNOWN_UNSUPPORTED: Record<string, string> = {
-  instance: 'Penpot 组件实例化尚未接线（需 library.components + component.instance()）',
   boolean_operation: '布尔运算尚未接线（penpot.createBoolean）',
   template: '模版元素应在服务端展开为普通 DSL 元素后再下发',
   generator: '生成器元素应在服务端展开为普通 DSL 元素后再下发',
@@ -255,6 +254,58 @@ export async function renderDsl(
   return report
 }
 
+/**
+ * 合并多次 `renderDsl` 的报告。
+ *
+ * 为什么需要它：`renderDsl` 一次只接**一个**父层，而 `node_create` 的契约允许
+ * `nodes[].parentId` 各不相同 —— 于是必须按父层分组多次渲染，再把结果合成一份报告
+ * 返回给调用方（工具响应只有一个 report）。
+ *
+ * 合并口径：计数型相加（skipped / rootCount / timing / tokenBindings / textRuns），
+ * 列表型拼接，告警型去重后拼接（同一份客户端渲染的 class 不该重复计数）。
+ * `clientRenderMs` 是**客户端**（HTML → DSL）的耗时，与分组数无关，取第一个非空值。
+ */
+export function mergeRenderReports(reports: readonly RenderReport[]): RenderReport {
+  if (reports.length === 1) return reports[0]
+
+  const clientRenderMs = reports.map((report) => report.timing.clientRenderMs).find((value) => value !== undefined)
+  const merged: RenderReport = {
+    host: reports[0].host,
+    created: [],
+    rootIds: [],
+    skipped: [],
+    perElement: [],
+    unresolvedClasses: [...new Set(reports.flatMap((report) => report.unresolvedClasses))],
+    layoutWarnings: [...new Set(reports.flatMap((report) => report.layoutWarnings))],
+    rootCount: 0,
+    timing: {
+      hostRenderMs: reports.reduce((sum, report) => sum + report.timing.hostRenderMs, 0),
+      ...(clientRenderMs !== undefined ? { clientRenderMs } : {}),
+    },
+    tokenBindings: {
+      requested: reports.reduce((sum, report) => sum + report.tokenBindings.requested, 0),
+      bound: reports.reduce((sum, report) => sum + report.tokenBindings.bound, 0),
+      failed: reports.flatMap((report) => report.tokenBindings.failed),
+    },
+    textRuns: {
+      elements: reports.reduce((sum, report) => sum + report.textRuns.elements, 0),
+      runs: reports.reduce((sum, report) => sum + report.textRuns.runs, 0),
+      characters: reports.reduce((sum, report) => sum + report.textRuns.characters, 0),
+    },
+    rootNodeIds: [],
+  }
+
+  for (const report of reports) {
+    merged.created.push(...report.created)
+    merged.rootIds.push(...report.rootIds)
+    merged.rootNodeIds.push(...report.rootNodeIds)
+    merged.skipped.push(...report.skipped)
+    merged.perElement.push(...report.perElement)
+    merged.rootCount += report.rootCount
+  }
+  return merged
+}
+
 async function renderElement(
   host: HostAdapter,
   element: DSLElement,
@@ -273,6 +324,11 @@ async function renderElement(
   // 给出成员，因此必须先渲染出子节点再成组。单独走一条路径。
   if (dslType === 'group') {
     return renderGroup(host, element, path, options, report)
+  }
+
+  // instance 同理：实例不能「先建个空节点再填」，必须由宿主按组件母版实例化。
+  if (dslType === 'instance') {
+    return renderInstance(host, element, path, options, report)
   }
 
   const kind = DSL_TYPE_TO_KIND[dslType]
@@ -297,10 +353,18 @@ async function renderElement(
   }
 
   if (dslType === 'component') {
+    /**
+     * 这里**故意**只落地成 board，不在渲染中途转组件：母版要在子层全部渲染完之后才能定稿，
+     * "边渲染边转"会让子层归属与撤销块都不可预期。转组件有专门的工具：
+     * `node_convert_to_component`（按 id / 容器 / 名字前缀，支持 combineVariants 合成变体集）。
+     *
+     * 旧文案写的是「真组件化（library.createComponent）尚未接线」—— 那句是**错的**：
+     * 该宿主原语一直存在，`node_convert_to_component` / `combineVariants` 都在用它。
+     */
     report.skipped.push({
       path,
       target: 'component',
-      reason: 'Penpot 侧先按 board 落地；真组件化（library.createComponent）尚未接线',
+      reason: 'DSL 的 component 元素在 Penpot 侧按 board 落地；要真组件化，请对落地后的节点调用 node_convert_to_component',
     })
   }
 
@@ -577,6 +641,130 @@ async function renderGroup(
 
   report.perElement.push({ path, applied, skipped })
   return group
+}
+
+/**
+ * 渲染 instance：直接走宿主 `instantiateComponent`（本地库 / 团队库组件实例化）。
+ *
+ * 为什么单独一条路径（与 group 同理）：实例不能「先建个空节点再填」—— 它必须由宿主按组件
+ * 母版实例化。此前这个类型被登记在 `KNOWN_UNSUPPORTED` 里，理由写「Penpot 组件实例化尚未接线」，
+ * 但那句话是**错的**：`HostAdapter.instantiateComponent` 一直存在，`team_component_import` 与
+ * `node_swap_component` 都在用。改成真接线之后，客户端渲染的
+ * `<section data-library-component=...>` 声明式复用才真正能落地。
+ *
+ * 不做什么（如实上报，不装）：`overrides`（按子层名覆写）Penpot 侧尚未接线；`componentUkey`
+ * 是 MasterGo 专有标识。两者都进 `skipped`，而不是静默丢掉 —— 否则调用方会拿到一个
+ * 「看起来渲染成功、但实例没带覆写」的结果。
+ */
+async function renderInstance(
+  host: HostAdapter,
+  element: DSLElement,
+  path: string,
+  options: RenderOptions,
+  report: RenderReport,
+): Promise<HostNode | null> {
+  let applied = 0
+  let skipped = 0
+
+  // SAFETY: `componentUkey` / `componentVariant` / `variantProperties` / `overrides` 都在
+  // `KNOWN_DSL_FIELDS` 里（客户端渲染会产出这些字段），但 `DSLElement` 未声明它们；
+  // 这里只做可缺失探测读取，不修改 element 本身。
+  const extra = element as unknown as {
+    componentUkey?: unknown
+    componentVariant?: unknown
+    variantProperties?: unknown
+    overrides?: unknown
+  }
+
+  if (typeof extra.componentUkey === 'string' && extra.componentUkey) {
+    report.skipped.push({
+      path,
+      target: 'componentUkey',
+      reason: 'ukey 是 MasterGo 团队库的标识，Penpot 无对应概念（改用 componentId / componentName）',
+    })
+    skipped += 1
+  }
+
+  const componentId = typeof element.componentId === 'string' ? element.componentId : undefined
+  const componentName = typeof element.componentName === 'string' ? element.componentName : undefined
+  if (!componentId && !componentName) {
+    report.skipped.push({
+      path,
+      target: 'instance',
+      reason: 'instance 元素需要 componentId 或 componentName（Penpot 按组件 id / 组件名解析）',
+    })
+    report.perElement.push({ path, applied, skipped: skipped + 1 })
+    return null
+  }
+
+  const width = Number(element.size?.width)
+  const height = Number(element.size?.height)
+  const x = Number(element.position?.x)
+  const y = Number(element.position?.y)
+
+  let instance: HostNode
+  try {
+    const created = await host.instantiateComponent({
+      componentId,
+      componentName,
+      parent: options.parent ?? null,
+      ...(Number.isFinite(x) ? { x } : {}),
+      ...(Number.isFinite(y) ? { y } : {}),
+      ...(Number.isFinite(width) && width > 0 ? { width } : {}),
+      ...(Number.isFinite(height) && height > 0 ? { height } : {}),
+      ...(element.name ? { name: element.name } : {}),
+    })
+    const node = host.getNodeById(created.nodeId)
+    if (!node) {
+      report.skipped.push({ path, target: 'instance', reason: `实例化成功但回读不到节点: ${created.nodeId}` })
+      report.perElement.push({ path, applied, skipped: skipped + 1 })
+      return null
+    }
+    instance = node
+  } catch (error) {
+    if (options.strict) throw error
+    report.skipped.push({ path, target: 'instance', reason: (error as Error).message })
+    report.perElement.push({ path, applied, skipped: skipped + 1 })
+    return null
+  }
+  applied += 1
+
+  /** 变体选择：轴名 + 值（宿主内部把轴名翻成下标 —— 见 penpot-components.ts 的 switchVariant） */
+  const variantRequests: Array<[string, string]> = []
+  if (typeof extra.componentVariant === 'string' && extra.componentVariant) {
+    variantRequests.push(['variant', extra.componentVariant])
+  }
+  if (extra.variantProperties && typeof extra.variantProperties === 'object' && !Array.isArray(extra.variantProperties)) {
+    for (const [axis, value] of Object.entries(extra.variantProperties as Record<string, unknown>)) {
+      variantRequests.push([axis, String(value)])
+    }
+  }
+  for (const [axis, value] of variantRequests) {
+    const result = await host.switchVariant(instance, axis, value)
+    if (result.switched) {
+      applied += 1
+    } else {
+      report.skipped.push({
+        path,
+        target: `variantProperties.${axis}`,
+        reason: result.note ?? `变体 ${axis}=${value} 未生效`,
+      })
+      skipped += 1
+    }
+  }
+
+  if (extra.overrides && typeof extra.overrides === 'object' && Object.keys(extra.overrides as object).length > 0) {
+    report.skipped.push({
+      path,
+      target: 'overrides',
+      reason: 'overrides（按子层名覆写）在 Penpot 侧尚未接线；请实例化后用 node_update 逐节点改',
+    })
+    skipped += 1
+  }
+
+  report.created.push({ id: instance.id, name: element.name ?? instance.id, kind: 'instance', dslType: 'instance' })
+  report.perElement.push({ path, applied, skipped })
+  return instance
 }
 
 /** 从 DSL 文档上取回客户端渲染阶段标记的未解析 class */

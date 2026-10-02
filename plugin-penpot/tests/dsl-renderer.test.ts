@@ -156,15 +156,37 @@ describe('降级报告', () => {
     const report = await renderDsl(host, {
       elements: [
         { type: 'rectangle', name: 'OK' },
-        { type: 'instance', name: 'Inst' },
         { type: 'connector', name: 'Conn' },
       ],
     })
 
     expect(report.rootCount).toBe(1)
-    expect(report.skipped.map((s) => s.target)).toEqual(expect.arrayContaining(['instance', 'connector']))
+    expect(report.skipped.map((s) => s.target)).toEqual(['connector'])
     // 报告里要能给出原因，不能只报「不支持」
-    expect(report.skipped.find((s) => s.target === 'connector')?.reason).toMatch(/connector/)
+    expect(report.skipped[0].reason).toMatch(/connector/)
+  })
+
+  it('instance 缺 componentId/componentName → 给可操作的原因，而不是谎报「尚未接线」', async () => {
+    const report = await renderDsl(host, { elements: [{ type: 'instance', name: 'Inst' }] })
+
+    expect(report.rootCount).toBe(0)
+    const skip = report.skipped.find((s) => s.target === 'instance')
+    expect(skip?.reason).toMatch(/componentId|componentName/)
+    // 真机教训：这里曾写「Penpot 组件实例化尚未接线」，而该端口一直存在
+    expect(skip?.reason).not.toMatch(/尚未接线/)
+  })
+
+  it('instance 真的实例化（本地库组件）—— 声明支持就必须能跑', async () => {
+    const master = await host.createNode({ kind: 'frame', name: 'Card', width: 120, height: 80 })
+    const component = await host.createComponent([master], 'Card')
+
+    const report = await renderDsl(host, {
+      elements: [{ type: 'instance', name: 'CardInstance', componentId: component.componentId }],
+    })
+
+    expect(report.skipped).toEqual([])
+    expect(report.rootCount).toBe(1)
+    expect(report.created[0].dslType).toBe('instance')
   })
 
   it('能力不支持时真的会抛错（不是静默）', async () => {
