@@ -9,7 +9,7 @@ const CHAIN_CONVERT_PARAMS = {
 const codeToDesignTool: MCPTool = {
   name: 'code_to_design',
   description:
-    '⭐ HTML+Tailwind → MasterGo 画布的唯一推荐路径：服务端预处理（图标/图表/组件）→ 客户端浏览器真实渲染 → 提取精确像素 → 画布。传 filePath 或 html 字符串，不要自己传 DSL。渲染完自动聚焦并选中新节点（focus/select 可关）。',
+    '⭐ HTML+Tailwind → 设计画布的唯一推荐路径：服务端预处理（图标/图表/组件）→ 客户端浏览器真实渲染 → 提取精确像素 → 画布。传 filePath 或 html 字符串，不要自己传 DSL。渲染完自动聚焦并选中新节点（focus/select 可关）。',
   inputSchema: {
     type: 'object',
     properties: {

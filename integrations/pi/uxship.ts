@@ -1,5 +1,5 @@
 /**
- * uxship.ts — pi 扩展：自动确保 MasterGo MCP Server 常驻
+ * uxship.ts — pi 扩展：自动确保 uxship MCP Server 常驻
  *
  * 解决的问题：MasterGo 插件需要一个**常驻**的 WebSocket 服务端（默认 ws://localhost:15489），
  * MCP 客户端（pi / opencode）通过 HTTP+SSE（默认 15490）连接。以前每次都得手动
@@ -78,9 +78,9 @@ function summarize(result: EnsureResult): string {
             ? '由其它终端启动'
             : '就绪'
     const plugin = result.health?.pluginConnected ? '插件已连接' : '插件未连接（请在 MasterGo 里打开 plugin-mastergo）'
-    return `MasterGo MCP Server ${how} · ${plugin}`
+    return `uxship MCP Server ${how} · ${plugin}`
   }
-  return `MasterGo MCP Server 未就绪：${result.message || result.reason || '未知原因'}`
+  return `uxship MCP Server 未就绪：${result.message || result.reason || '未知原因'}`
 }
 
 export default function (pi: any) {
@@ -90,7 +90,7 @@ export default function (pi: any) {
       const result = await withTimeout(ensureRunning(), ENSURE_TIMEOUT_MS)
       if (!result) {
         record('ensure: timeout, still running in background')
-        ctx.ui?.notify?.('MasterGo MCP Server 仍在后台启动中…', 'info')
+        ctx.ui?.notify?.('uxship MCP Server 仍在后台启动中…', 'info')
         return
       }
       record(`ensure: ${JSON.stringify(result)}`)
@@ -99,13 +99,13 @@ export default function (pi: any) {
       else if (!result.ok) ctx.ui?.notify?.(summarize(result), 'error')
     } catch (err: any) {
       record(`ensure: failed ${err?.message || err}`)
-      ctx.ui?.notify?.(`MasterGo MCP Server 自动启动失败：${err?.message || err}`, 'error')
+      ctx.ui?.notify?.(`uxship MCP Server 自动启动失败：${err?.message || err}`, 'error')
     }
   })
 
   // 手动管理：/uxship-server status | start | stop | restart
   pi.registerCommand('uxship-server', {
-    description: '查看/管理 MasterGo MCP Server（status | start | stop | restart）',
+    description: '查看/管理 uxship MCP Server（status | start | stop | restart）',
     handler: async (args: string, ctx: any) => {
       const action = (args || 'status').trim().split(/\s+/)[0]
       try {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * MasterGo MCP Server
+ * uxship MCP Server
  *
  * 支持两种运行模式：
  * - HTTP + WebSocket 模式：通过 HTTP API 供 AI IDE 调用
@@ -106,7 +106,7 @@ function parseArgs(args: string[]): Record<string, string> {
 
 function printHelp(): void {
   console.log(`
-MasterGo MCP Server
+uxship MCP Server
 
 Usage: mcp-server [options]
 
@@ -207,7 +207,7 @@ function createBridgeRouter(
 }
 
 async function startHttpMode(httpPort: number, wsPort: number, connectTimeoutSec?: number, backendMode?: string, host = '127.0.0.1', penpotOptions?: { port: number; disabled: boolean }): Promise<void> {
-  logger.info('Starting MasterGo MCP Server', { mode: 'HTTP+WS', httpPort, wsPort, host })
+  logger.info('Starting uxship MCP Server', { mode: 'HTTP+WS', httpPort, wsPort, host })
 
   if (backendMode) {
     process.env.UXSHIP_MODE = backendMode
@@ -240,7 +240,7 @@ async function startHttpMode(httpPort: number, wsPort: number, connectTimeoutSec
   }
 
   const cleanup = async () => {
-    logger.info('Shutting down MasterGo MCP Server')
+    logger.info('Shutting down uxship MCP Server')
     httpServer.stop()
     await sdkServer.close()
     await router.stop()
@@ -280,7 +280,7 @@ async function startStdioMode(connectTimeoutSec?: number, backendMode?: string, 
   }
 
   const cleanup = async () => {
-    logger.info('Shutting down MasterGo MCP Server (STDIO)')
+    logger.info('Shutting down uxship MCP Server (STDIO)')
     await sdkServer.close()
     await router.stop()
     process.exit(0)

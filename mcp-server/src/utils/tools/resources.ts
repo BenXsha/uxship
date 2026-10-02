@@ -16,7 +16,7 @@ const iconSearchTool: MCPTool = {
 
 const iconRenderTool: MCPTool = {
   name: 'icon_render',
-  description: '从 Iconify API 获取图标并直接渲染到 MasterGo 画布。使用 "prefix:name" 格式指定图标，如 "ri:search-line"。自动完成：在线获取图标 → 生成 DSL → 渲染到画布。',
+  description: '从 Iconify API 获取图标并直接渲染到设计画布。使用 "prefix:name" 格式指定图标，如 "ri:search-line"。自动完成：在线获取图标 → 生成 DSL → 渲染到画布。',
   inputSchema: {
     type: 'object',
     properties: {

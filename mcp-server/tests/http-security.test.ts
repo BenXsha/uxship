@@ -8,7 +8,7 @@ import {
   isAuthorized,
   requiresAuth,
 } from '../src/utils/http-security.js'
-import { findPortOwners, isMastergoMcpProcess, killPort } from '../src/utils/process.js'
+import { findPortOwners, isUxshipMcpProcess, killPort } from '../src/utils/process.js'
 
 /**
  * HTTP/进程边界安全测试
@@ -71,16 +71,16 @@ describe('token 提取与鉴权', () => {
 
 describe('进程身份判定', () => {
   it('认得出我们自己的运行方式', () => {
-    expect(isMastergoMcpProcess('node /Users/x/master-local-mcp/mcp-server/dist/index.js')).toBe(true)
-    expect(isMastergoMcpProcess('node /Users/x/mcp-server/node_modules/.bin/tsx watch src/index.ts')).toBe(true)
-    expect(isMastergoMcpProcess('npx mcp-server --stdio')).toBe(true)
+    expect(isUxshipMcpProcess('node /Users/x/master-local-mcp/mcp-server/dist/index.js')).toBe(true)
+    expect(isUxshipMcpProcess('node /Users/x/mcp-server/node_modules/.bin/tsx watch src/index.ts')).toBe(true)
+    expect(isUxshipMcpProcess('npx mcp-server --stdio')).toBe(true)
   })
 
   it('拒绝把无关进程当成自己', () => {
-    expect(isMastergoMcpProcess('/usr/local/bin/postgres -D /data')).toBe(false)
-    expect(isMastergoMcpProcess('nginx: worker process')).toBe(false)
-    expect(isMastergoMcpProcess('node /Users/x/other-project/dist/index.js')).toBe(false)
-    expect(isMastergoMcpProcess('')).toBe(false)
+    expect(isUxshipMcpProcess('/usr/local/bin/postgres -D /data')).toBe(false)
+    expect(isUxshipMcpProcess('nginx: worker process')).toBe(false)
+    expect(isUxshipMcpProcess('node /Users/x/other-project/dist/index.js')).toBe(false)
+    expect(isUxshipMcpProcess('')).toBe(false)
   })
 
   it('在空闲端口上不做任何事（不抛异常）', () => {
@@ -98,7 +98,7 @@ describe('源码门禁', () => {
   it('process.ts 不再无差别 kill 端口占用者', () => {
     const source = readFileSync(join(SRC, 'utils/process.ts'), 'utf-8')
     expect(source).not.toMatch(/`kill -9 \$\{/)
-    expect(source).toContain('isMastergoMcpProcess')
+    expect(source).toContain('isUxshipMcpProcess')
     expect(source).toContain('refused')
   })
 

@@ -5,7 +5,7 @@
  * 作用：把 integrations/pi/uxship.ts 复制到 pi 的全局扩展目录，并把
  * `__UXSHIP_REPO__` 占位符替换成本仓库的绝对路径（团队每个人的仓库路径不同）。
  *
- * 安装后：pi 每次 session_start 会自动 `ensure` MasterGo MCP Server（多终端只拉起一个，
+ * 安装后：pi 每次 session_start 会自动 `ensure` uxship MCP Server（多终端只拉起一个，
  * 且 detached 存活），并提供 `/uxship-server status|start|stop|restart` 命令。
  *
  * 用法：

@@ -1,5 +1,5 @@
 /**
- * MasterGo MCP 一键打包工具
+ * uxship MCP 一键打包工具
  *
  * 打包内容：
  * 1. mcp-server (已构建)
@@ -219,7 +219,7 @@ async function createInstallScripts(pkgDir) {
   const installBat = `@echo off
 chcp 65001 > nul
 echo ========================================
-echo   MasterGo MCP Server 安装程序
+echo   uxship MCP Server 安装程序
 echo ========================================
 echo.
 
@@ -267,7 +267,7 @@ pause
 set -e
 
 echo "========================================"
-echo "  MasterGo MCP Server 安装程序"
+echo "  uxship MCP Server 安装程序"
 echo "========================================"
 echo ""
 
@@ -304,9 +304,9 @@ echo ""
   // MCP 配置脚本
   const configMcpSh = `#!/bin/bash
 
-# MasterGo MCP 自动配置脚本
+# uxship MCP 自动配置脚本
 
-echo "正在配置 MasterGo MCP..."
+echo "正在配置 uxship MCP..."
 
 # 检测操作系统
 detect_os() {
@@ -427,7 +427,7 @@ echo "3. 或手动启动: npm start"
   // Windows MCP 配置脚本
   const configMcpBat = `@echo off
 chcp 65001 > nul
-echo 正在配置 MasterGo MCP...
+echo 正在配置 uxship MCP...
 
 REM 检测配置文件路径
 set "CONFIG_PATH="
@@ -482,7 +482,7 @@ async function createReadme(pkgDir, version) {
     : ''
   const readme = `# uxship MCP Server v${version}
 
-通过 MCP (Model Context Protocol) 协议连接 AI Agent 与 MasterGo 设计工具的服务器。
+通过 MCP (Model Context Protocol) 协议连接 AI Agent 与设计工具的服务器。
 
 ## 快速安装
 
@@ -583,7 +583,7 @@ async function main() {
   console.log(`
 ${colors.cyan}
 ╔══════════════════════════════════════════════╗
-║    MasterGo MCP Server 打包工具 v1.0         ║
+║    uxship MCP Server 打包工具 v1.0         ║
 ╚══════════════════════════════════════════════╝
 ${colors.reset}
 `)

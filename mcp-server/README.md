@@ -314,7 +314,7 @@ mcp-server --stdio
 
 ### code_to_design（推荐）
 
-从 HTML+Tailwind 到 MasterGo 画布的**唯一推荐路径**。自动完成：
+从 HTML+Tailwind 到设计画布的**唯一推荐路径**。自动完成：
 1. 读取 HTML 文件或接收 HTML 字符串
 2. 解析 HTML + Tailwind 样式
 3. 识别并获取图标资源（data-icon）
@@ -505,7 +505,7 @@ launchctl list | grep mastergo
 
 ```ini
 [Unit]
-Description=MasterGo MCP Server
+Description=uxship MCP Server
 After=network.target
 
 [Service]
@@ -549,7 +549,7 @@ sudo systemctl restart mcp-server
 1. 打开「任务计划程序」
 2. 点击「创建任务」
 3. **常规**选项卡：
-   - 名称：MasterGo MCP Server
+   - 名称：uxship MCP Server
    - 勾选「不管用户是否登录都要运行」
 4. **触发器**选项卡：
    - 点击「新建」

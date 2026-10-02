@@ -22,7 +22,7 @@ const samples = {
 
 let report = '# dsl-to-code 测试样本报告\n\n'
 report += `生成日期: ${new Date().toISOString().slice(0, 10)}\n`
-report += '样本来源: MasterGo 画布实时渲染 + DSL 导出\n\n'
+report += '样本来源: 设计画布实时渲染 + DSL 导出\n\n'
 
 report += `| 样本 | 元素数 | 组件 | 文本 | 输出状态 | 特性覆盖 |\n`
 report += `|------|--------|------|------|----------|----------|\n`

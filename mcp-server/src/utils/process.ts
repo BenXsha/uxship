@@ -31,14 +31,14 @@ export function findPortOwners(port: number): PortOwner[] {
 }
 
 /**
- * 该进程是否是我们自己的 MasterGo MCP Server。
+ * 该进程是否是我们自己的 uxship MCP Server。
  *
  * 判定依据是命令行里出现包名/目录名 `mcp-server`：
  * - 编译运行：`node .../mcp-server/dist/index.js`
  * - 开发运行：`node .../mcp-server/node_modules/.bin/tsx watch src/index.ts`
  * - npx/包安装：`mcp-server`
  */
-export function isMastergoMcpProcess(command: string): boolean {
+export function isUxshipMcpProcess(command: string): boolean {
   if (!command) return false
   return /mcp-server/.test(command) && !/lsof|grep|awk|sed/.test(command)
 }
@@ -46,7 +46,7 @@ export function isMastergoMcpProcess(command: string): boolean {
 /**
  * 清掉占用端口的**本服务旧实例**（重启/热更时使用）。
  *
- * 安全约束：占用者不是 MasterGo MCP Server 时**只报告、不 kill** ——
+ * 安全约束：占用者不是 uxship MCP Server 时**只报告、不 kill** ——
  * 旧实现是无差别 `lsof -ti:PORT | xargs kill -9`，用户把端口配成别的服务时会误杀。
  *
  * @returns killed 已清理的自有进程；refused 拒绝处理的陌生进程（调用方应报错退出）
@@ -57,14 +57,14 @@ export function killPort(port: number): { killed: PortOwner[]; refused: PortOwne
   const refused: PortOwner[] = []
 
   for (const owner of owners) {
-    if (!isMastergoMcpProcess(owner.command)) {
+    if (!isUxshipMcpProcess(owner.command)) {
       refused.push(owner)
       continue
     }
     try {
       process.kill(owner.pid, 'SIGKILL')
       killed.push(owner)
-      console.log(`[Process] Killed stale MasterGo MCP server (PID ${owner.pid}) on port ${port}`)
+      console.log(`[Process] Killed stale uxship MCP server (PID ${owner.pid}) on port ${port}`)
     } catch (err: any) {
       refused.push(owner)
       console.error(`[Process] Failed to kill PID ${owner.pid} on port ${port}: ${err?.message || err}`)

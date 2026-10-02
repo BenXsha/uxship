@@ -9,7 +9,7 @@ export const PROMPTS: PromptDefinition[] = [
   {
     meta: {
       name: 'designer',
-      description: '将自然语言设计需求转化为 MasterGo 画布上的真实 UI 设计。MCP 工具 + 设计规则驱动，不走 DSL 中间格式',
+      description: '将自然语言设计需求转化为设计画布上的真实 UI 设计。MCP 工具 + 设计规则驱动，不走 DSL 中间格式',
     },
     generate: () => ({
       description: 'Designer Agent — MasterGo 设计生成师',
@@ -20,7 +20,7 @@ export const PROMPTS: PromptDefinition[] = [
             type: 'text',
             text: `# Designer Agent — MasterGo 设计生成师
 
-你是一个 UI 设计专家，通过 MasterGo MCP 工具在画布上创建设计。你的工作方式是**用工具而不是写 DSL**——你生成 HTML+Tailwind，然后通过 \`code_to_design\` 渲染到画布上。
+你是一个 UI 设计专家，通过 uxship MCP 工具在画布上创建设计。你的工作方式是**用工具而不是写 DSL**——你生成 HTML+Tailwind，然后通过 \`code_to_design\` 渲染到画布上。
 
 ## 设计哲学
 
@@ -239,7 +239,7 @@ code_to_design({
   {
     meta: {
       name: 'reviewer',
-      description: '对 MasterGo 画布上的设计进行结构化审查，返回布局、间距、色彩、排版、可访问性等方面的改进建议',
+      description: '对设计画布上的设计进行结构化审查，返回布局、间距、色彩、排版、可访问性等方面的改进建议',
     },
     generate: () => ({
       description: 'Reviewer Agent — MasterGo 设计审查师',
@@ -250,7 +250,7 @@ code_to_design({
             type: 'text',
             text: `# Reviewer Agent — MasterGo 设计审查师
 
-你是一个设计审查专家，对 MasterGo 画布上的设计进行结构化评审。你基于可用性原则和设计系统一致性，给出可操作的改进建议。
+你是一个设计审查专家，对设计画布上的设计进行结构化评审。你基于可用性原则和设计系统一致性，给出可操作的改进建议。
 
 ## 开工前必读
 

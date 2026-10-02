@@ -171,7 +171,7 @@ const sessionSwitchTool: MCPTool = {
 
 const notifyTool: MCPTool = {
   name: 'notify',
-  description: '在 MasterGo 画布上显示通知消息，用于提示用户操作结果',
+  description: '在设计画布上显示通知消息，用于提示用户操作结果',
   inputSchema: {
     type: 'object',
     properties: {
@@ -189,7 +189,7 @@ const notifyTool: MCPTool = {
 
 const serverVersionTool: MCPTool = {
   name: 'get_version',
-  description: '获取 MasterGo MCP 服务器版本信息，包括版本号、Node.js 版本、运行时间等。调试和确认服务器状态时使用',
+  description: '获取 uxship MCP 服务器版本信息，包括版本号、Node.js 版本、运行时间等。调试和确认服务器状态时使用',
   inputSchema: { type: 'object', properties: {} },
 }
 

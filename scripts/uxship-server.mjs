@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * MasterGo MCP Server 进程管理（单一实例守护）
+ * uxship MCP Server 进程管理（单一实例守护）
  *
  * 背景：MasterGo 插件需要一个**常驻**的 WebSocket 服务端（默认 ws://localhost:15489），
  * 而 MCP 客户端（pi / opencode）通过 HTTP+SSE（默认 15490）连接。手动 `npm run dev`
@@ -230,7 +230,7 @@ export async function ensureRunning({ httpPort = HTTP_PORT, wsPort = WS_PORT, pr
         ok: false,
         started: false,
         reason: 'port-in-use-by-other',
-        message: `端口 ${httpPort} 已被其它进程占用，且 /health 不是 MasterGo MCP Server（不自动 kill，避免误杀）`,
+        message: `端口 ${httpPort} 已被其它进程占用，且 /health 不是 uxship MCP Server（不自动 kill，避免误杀）`,
       }
     }
   }
@@ -376,7 +376,7 @@ async function main() {
   } else if (cmd === 'ensure' || cmd === 'start') {
     if (result.ok) {
       const verb = result.started ? `已启动（PID ${result.pid}）` : result.status === 'already-running' ? '已在运行' : '其它终端已启动'
-      console.log(`✅ MasterGo MCP Server ${verb}：http://localhost:${HTTP_PORT}/sse，插件通道 ws://localhost:${WS_PORT}`)
+      console.log(`✅ uxship MCP Server ${verb}：http://localhost:${HTTP_PORT}/sse，插件通道 ws://localhost:${WS_PORT}`)
     } else {
       console.error(`❌ ${result.message || result.reason}`)
       process.exitCode = 1
