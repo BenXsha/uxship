@@ -43,7 +43,7 @@ Not affiliated with, endorsed by, or sponsored by any design tool vendor. Master
 
 ## License
 
-To be finalized before the first public release.
+Licensed under the [Apache License, Version 2.0](LICENSE).
 
 ---
 
