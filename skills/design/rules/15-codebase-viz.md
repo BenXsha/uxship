@@ -2,7 +2,7 @@
 
 ## 概述
 
-将任意代码库（TypeScript/JavaScript/Python/Java/Rust 等）的业务逻辑和架构结构，通过 HTML+Tailwind 模板渲染为 MasterGo 画布上的可读图表。
+将任意代码库（TypeScript/JavaScript/Python/Java/Rust 等）的业务逻辑和架构结构，通过 HTML+Tailwind 模板渲染为设计画布上的可读图表。
 
 ## 什么时候用
 

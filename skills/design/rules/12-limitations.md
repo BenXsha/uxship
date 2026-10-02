@@ -75,7 +75,7 @@
 | **非 gray/slate 的调色板**：`bg-indigo-600` / `text-red-500` / `border-blue-200` … | 颜色丢失（元素透明或继承父级）| 写任意值：`bg-[#4f46e5]` |
 | 其它未入白名单的工具类：`space-y-*` / `grid-cols-*` / `aspect-*` / `basis-*` … | 该项样式丢失 | 改用任意值或显式内联 `style` |
 
-> ⚠️ **未命中的 class 不再是无声丢失**：客户端渲染会把它们收进 `unresolvedClasses`，随 `dsl/render` 响应返回给 AI，并在 MasterGo 画布上弹一条警告通知（含前几个 class 名）。收到后改用上表的替代写法重渲即可，不必猜。
+> ⚠️ **未命中的 class 不再是无声丢失**：客户端渲染会把它们收进 `unresolvedClasses`，随 `dsl/render` 响应返回给 AI，并在设计画布上弹一条警告通知（含前几个 class 名）。收到后改用上表的替代写法重渲即可，不必猜。
 >
 > ✅ 已支持（多个版本前文档还列为不支持）：`bg-white` / `text-gray-*` / `border-slate-*`、`rounded-lg|2xl`、`shadow-md|lg`、`leading-tight`、`tracking-[Npx]`、`whitespace-nowrap`、`truncate`、`overflow-hidden`、`flex-nowrap`、`z-10`、`opacity-50`。
 >

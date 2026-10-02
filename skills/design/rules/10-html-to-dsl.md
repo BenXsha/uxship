@@ -106,7 +106,7 @@
 
 ## 使用链路
 
-唯一路径：`HTML 文件 → code_to_design(filePath | html) → 服务端预处理 → 客户端真实渲染 → 提取精确像素值 → 渲染到 MasterGo 画布`
+唯一路径：`HTML 文件 → code_to_design(filePath | html) → 服务端预处理 → 客户端真实渲染 → 提取精确像素值 → 渲染到设计画布`
 仅需一次调用，AI 只传文件路径或 HTML 字符串，零 token 传输。
 
 ### 渲染流程详解

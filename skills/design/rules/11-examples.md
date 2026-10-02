@@ -91,7 +91,7 @@ node_create({ nodes: [{ type: "frame", properties: { name: "Box", width: 16, hei
 2. 提取设计令牌（颜色、间距、圆角）
 3. 生成 Style Dictionary 格式
 
-### 场景四：HTML 代码转 MasterGo 设计
+### 场景四：HTML 代码转设计
 ```
 code_to_design(filePath="/path/to/page.html") → 自动完成: 读文件→转DSL→渲染画布
 ```

@@ -130,7 +130,7 @@ mcp_tools({ action: "enable", tool: ["component_render"] })  # 按工具名精�
 |---------|------|------|
 | **服务端（无需插件连接）** | `design_to_code`, `design_to_code_update`, `icon_search`, `design_suggest`, `design_review`, `codebase_get_structure`, `get_version`, `get_guidelines`, `team_library_list`, `team_component_search`, `team_style_list`, `team_library_sync` | 由 MCP server 本地执行（`local-tools.ts` / 服务端 handler）。团队库索引类工具优先读 `.uxship/team-library.json`，缓存缺失或过期时才向插件拉取 |
 | **服务端预处理 + 插件渲染** | `code_to_design`, `icon_render` | 服务端准备数据（HTML/图标 DSL），再交插件/客户端渲染到画布 |
-| **插件** | 其余工具 | 需 MasterGo 插件保持连接 |
+| **插件** | 其余工具 | 需插件保持连接 |
 
 > 路由规则：工具名命中 `PLUGIN_METHOD_MAP`（或默认 `_`→`/` 映射）的转发插件；在 `LOCAL_TOOLS` 中的交给 `executeLocalTool`，不会静默变成 `Method not found`。新增工具时请同步更新 `tools.ts` 的映射与 `PLUGIN_REGISTERED_METHODS` 断言。
 
@@ -261,7 +261,7 @@ mcp_tools({ action: "enable", tool: ["component_render"] })  # 按工具名精�
 HTML 文件/code → code_to_design(filePath | html) 
   → 服务端预处理（图标本地缓存、图表 ECharts SSR、组件预渲染）
   → 客户端浏览器真实渲染（Flexbox/Grid 布局精度）
-  → 提取精确像素值 → 渲染到 MasterGo 画布
+  → 提取精确像素值 → 渲染到设计画布
 ```
 
 不推荐直接传 DSL 负载给插件——`code_to_design` 是唯一路径，零 token 传输。
@@ -829,7 +829,7 @@ AI 在设计前应调用它加载相关规则，确保生成的 HTML+Tailwind �
 
 | 工具 | 描述 | 参数 |
 |------|------|------|
-| `session_list` | 列出当前所有已连接的 MasterGo 插件会话。每个会话对应一个打开的设计文档。返回 sessionId、codename（代号）、文档名、文档 ID、页面名、页面 ID、连接时间。在生成新设计前应先调用此工具了解可用文档。AI 可通过 codename 快速辨识目标会话。 | 无参数 |
+| `session_list` | 列出当前所有已连接的插件会话。每个会话对应一个打开的设计文档。返回 sessionId、codename（代号）、文档名、文档 ID、页面名、页面 ID、连接时间。在生成新设计前应先调用此工具了解可用文档。AI 可通过 codename 快速辨识目标会话。 | 无参数 |
 | `session_switch` | 切换当前 AI 客户端的目标插件会话。指定目标后，后续的所有工具调用自动路由到该会话对应的文档。调用方式分两种：**全局切换**（用 `session_switch` 改变后续所有调用）和 **单次路由**（在工具参数中加 `_sessionId`）。 | `clientId?`: number, `codename?`: string, `sessionId?`: string |
 
 ### `session_switch` 的三种定位方式

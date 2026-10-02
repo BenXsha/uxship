@@ -2,7 +2,7 @@
 
 ## 概述
 
-通过 MasterGo MCP 工具链，在画布上建立完整的视觉设计系统，包括设计令牌（Token）参考页和可复用的 Component Master 资产库。一次创建，后续所有设计统一引用。
+通过 uxship MCP 工具链，在画布上建立完整的视觉设计系统，包括设计令牌（Token）参考页和可复用的 Component Master 资产库。一次创建，后续所有设计统一引用。
 
 ---
 
@@ -482,7 +482,7 @@ task_step("page", "completed")
 ```
 1. code_to_design({ filePath: "templates/design-system-components.html" })
    └→ 一次调用渲染 23+ 组件到画布，偏移至 Y=2200
-   └→ 每个组件的 data-name 作为 MasterGo 节点名称
+   └→ 每个组件的 data-name 作为 画布节点名称
 
 2. 对所有组件：
    search_nodes({ name: { value: "DS_Button_Primary", matchType: "exact" }, types: ["FRAME"] })
@@ -571,7 +571,7 @@ for each interactive type (button, select, text-input, toggle, checkbox, radio, 
 
 ## 第三·五阶段：开发者资源导出
 
-Token 面板生成后，可通过 `library_register_styles` 将令牌注册为 MasterGo 原生样式，然后通过 `dsl_export_node` 导出 DSL → `design_to_code` 的 `mode: "tokens"` 输出 CSS 变量、Tailwind Config 和 DTCG JSON。
+Token 面板生成后，可通过 `library_register_styles` 将令牌注册为宿主原生样式，然后通过 `dsl_export_node` 导出 DSL → `design_to_code` 的 `mode: "tokens"` 输出 CSS 变量、Tailwind Config 和 DTCG JSON。
 
 ### 3.5.1 导出流程
 
@@ -593,7 +593,7 @@ Token 面板生成后，可通过 `library_register_styles` 将令牌注册为 M
 
 ### 3.5.2 样式注册规则
 
-`library_register_styles` 识别以下 `data-name` 模式并创建对应 MasterGo 原生样式：
+`library_register_styles` 识别以下 `data-name` 模式并创建对应宿主原生样式：
 
 | data-name 模式 | 样式类型 | MasterGo API | 结果样式名 |
 |---|---|---|---|
@@ -602,7 +602,7 @@ Token 面板生成后，可通过 `library_register_styles` 将令牌注册为 M
 | `Space 4`, `Space 8` 等 | SPACING | `mg.createSpacingStyle({id, name})` | `Space/4` |
 | `Shadow SM`, `Shadow MD` 等 | EFFECT | `mg.createEffectStyle({id, name})` | `Shadow/SM` |
 
-注册后，创建的样式会出现在 MasterGo 样式面板中。
+注册后，创建的样式会出现在宿主样式面板中。
 
 ### 3.5.3 输出示例
 
@@ -875,7 +875,7 @@ Phase 4: 引用（后续每次设计）
 | 3.1 | 新增 token 类别到 DEFAULT_THEME | 补全圆角阶梯、透明度、z-index、动效、网格、交互 tokens |
 | 3.2 | 更新 Token 面板 HTML 模板 | 增加 Motion、Border Radius、Opacity、Z-Index、Grid、Interaction 面板（模板已就绪） |
 | 3.3 | `dsl-tokens.ts` 增加输出 | CSS 变量 / Tailwind / DTCG 同步新增 token（含字体回退栈、间距语义名、高程语义名） |
-| 3.4 | `library_register_styles` 扩展 | 支持注册新类别（如有对应的 MasterGo API） |
+| 3.4 | `library_register_styles` 扩展 | 支持注册新类别（如有对应的宿主 API） |
 | 3.5 | 对齐 Geist 语义命名 | 增加 `foreground/background/link/selection` 等角色色，以及 `elevationSurface/Floating` 高程语义 |
 
 ### 4. 🧩 组件组合模式（中优先级）

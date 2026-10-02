@@ -5,7 +5,7 @@
 > 完整对照表 + 实例子层 / GROUP 等不可写项 → `12-limitations.md §可写字段与名字踩坑`。
 > **DSL / HTML 侧与写回 API 侧的字段名并不相同**（如 `primaryAxisAlignItems` vs `mainAxisAlignItems`），写回时用宿主名。
 
-在编写 MasterGo 视觉表达 HTML 时，请务必检查以下极易犯的错误：
+在编写设计表达 HTML 时，请务必检查以下极易犯的错误：
 
 ## 0. MasterGo 自动布局默认值陷阱（最重要）
 
@@ -162,7 +162,7 @@ MasterGo 自动布局的 `crossAxisAlignItems`（旧文档写作 `counterAxisAli
 
 ## 9. 反馈闭环
 
-MasterGo 设计生成是 **假设 → 渲染 → 验证 → 修正** 的迭代过程。每次发现偏差应回馈进代码或文档。
+设计生成是 **假设 → 渲染 → 验证 → 修正** 的迭代过程。每次发现偏差应回馈进代码或文档。
 
 - 首次渲染很少完美——MasterGo API 有多个非直觉默认值
 - 同一问题手动修正 ≥2 次 → 应反馈到代码或文档中
