@@ -21,14 +21,15 @@ env:
   COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
 
 jobs:
-  # ── 廉价门禁：根 package.json 零依赖，所以不装依赖，几十秒出结果 ──
+  # ── 廉价门禁：根 package.json 零依赖，所以不装依赖，几秒出结果 ──
   # 放最前面是为了让「文档/副本漂移」这类问题秒级失败，不占用测试矩阵。
   #
-  # 注意：依赖相关的门禁（licence、产物）不在这里 —— 它们必须先装依赖，
-  # 否则 check-licenses.mjs 拿不到依赖树，会把「未安装」当成「许可不可核验」而报错
-  # （真实事故：本 job 第一版把 licence gate 放这里，main 上直接红）。
+  # 只放**纯文本比对**类检查。依赖相关（licence）与需要产物的（pi 钩子自检）
+  # 都不在这里 —— 它们各有前置条件，放错了就是一连串假红：
+  #   · licence  需要依赖树（否则把「未安装」当「许可不可核验」）
+  #   · pi 钩子  需要 mcp-server 构建产物（否则「未找到服务端入口」）
   repo-gates:
-    name: repo gates (docs links · skill copy · pi hook)
+    name: repo gates (docs links · skill copy · response-budget)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -52,19 +53,6 @@ jobs:
       # response-budget 唯一源与其 mcp-server 副本的双写一致性（纯字节比对，无需装依赖）
       - name: response-budget dual-write consistency
         run: npm run check:response-budget
-
-      # pi 启动钩子：幂等 / 并发只有 1 个真拉起 / 不碰生产端口 15489-15490
-      #
-      # 必须先装扩展 —— 全新机器上 `~/.pi/agent/extensions/uxship.ts` 本来就不存在，
-      # 而自检的第一条就是「钩子已安装」（第一次 CI 就死在这一步）。
-      # 装到 runner.temp 而不是 HOME：不污染 runner 环境，也不会和真实用户目录撞车。
-      - name: pi hook self-check (install + verify)
-        env:
-          PI_EXTENSIONS_DIR: ${{ runner.temp }}/pi-extensions
-        run: |
-          set -euo pipefail
-          npm run pi:install-extension
-          npm run pi:verify
 
   # ── 三包 typecheck + 单测 ──
   # matrix 按计划跑 node 20 / 22 / 24（vitest 4 的 engines 正好是 ^20 || ^22 || >=24）
@@ -181,6 +169,18 @@ jobs:
 
       - name: Build mcp-server
         run: npm run build:server
+
+      # pi 启动钩子自检放在这里：它要**真实拉起服务端**，所以需要 mcp-server 的构建产物
+      # （构件不存在时报「未找到服务端入口」，在无依赖的 repo-gates 里必然假红）。
+      # 先装扩展 —— 全新机器上 ~/.pi/agent/extensions/uxship.ts 本来就不存在。
+      # 装到 runner.temp 而不是 HOME：不污染 runner 环境，也不和真实用户目录撞车。
+      - name: pi hook self-check (install + verify)
+        env:
+          PI_EXTENSIONS_DIR: ${{ runner.temp }}/pi-extensions
+        run: |
+          set -euo pipefail
+          npm run pi:install-extension
+          npm run pi:verify
 
       - name: Build plugin-mastergo
         run: npm run build:plugin
