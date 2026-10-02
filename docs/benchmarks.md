@@ -61,13 +61,48 @@ truncation walks a fixed ladder (arrays 50 → 25 → 12 → 6 → 3 → 1; stri
 That trade is deliberate — predictable, much smaller output — but it does mean data that *would*
 have fitted is withheld. Raising `maxChars` re-applies the same ladder at the higher ceiling.
 
-## 3. What has **not** been measured
+## 3. Render fidelity — a first real data point
+
+Measured on **one page, one host** (Penpot, 2026-10-02): the page in [`../examples/`](../examples/)
+rendered through the engine, written to a canvas, then read back and compared node by node.
+
+| | Result |
+|---|---|
+| Explicitly sized nodes matching exactly | **10 / 10** |
+| Degradations (`skipped`) | 0 |
+| Unresolved Tailwind classes | 0 |
+| Engine client render | 40 ms |
+| Host application | 7 319 ms |
+| Hug-width container | **differs**: engine 131 px, canvas 143 px |
+
+The rule this suggests, and the thing to check first when a canvas “looks off”:
+
+> **Fixed sizes survive the trip; hug sizes depend on the host's text measurement.**
+
+A node with a declared width came back byte-identical. A node whose width follows its text
+(`Brand`, a label-sized frame) came back 12 px wider, because the host measured the same string
+differently than the browser did. That is not a bug in either side — it is the boundary of what
+measuring in a browser can promise.
+
+The run also produced a structured `layoutWarnings` entry for a text box that was 1 px too tight
+(single-line natural width 308 in a 307 box), with a concrete suggestion to leave ≥8 px of slack.
+Worth knowing: too-tight text is reported, not silently clipped.
+
+### Still not measured here
+
+- **Pixels.** This compares node geometry, not rendered images. A visual diff would also catch
+  stroke/fill/effect differences.
+- **More than one page, or more than one host.** One clean page proves the mechanism, not a
+  distribution; a page of dense nested flex would be a more interesting sample.
+- **Cross-host divergence.** Same DSL on MasterGo and Penpot, diffed field by field.
+
+## 4. What has **not** been measured
 
 Stated explicitly, because a benchmark page that only shows favourable numbers is marketing:
 
 | Not measured | Why | What would be needed |
 |---|---|---|
-| **Render fidelity** (pixel diff, canvas vs browser) | Needs a live canvas and a screenshot pipeline; only spot-checked by hand so far | A scripted pixel-diff suite across a sample of pages, per host |
+| **Render fidelity** (pixel diff, canvas vs browser) | Partially measured now — see below — but only one page, one host, and sizes rather than pixels | A scripted pixel-diff suite across a sample of pages, per host |
 | **Cross-host production diff** | Same reason — requires both hosts open on the same document | Run the same DSL on both hosts, diff the resulting node trees field by field |
 | **Tool-selection accuracy** | Would need a task corpus and a scoring rubric; the risk is that it measures the corpus, not the tool | A labelled set of design tasks with expected tool sequences |
 | **End-to-end latency** | Host-call bound and environment-dependent | See below — call counts are the honest proxy |
@@ -78,6 +113,9 @@ Stated explicitly, because a benchmark page that only shows favourable numbers i
 The measurement worth knowing is **host call count**, not wall-clock time. On Penpot the plugin API
 is a synchronous proxy (roughly 10 ms per call, measured), so rendering time is dominated by how many
 host calls a render makes. A regression test pins that count for a representative render.
+
+The demo run bears this out: a 50-layer page spent **40 ms** in the client render and **7 319 ms**
+applying to the canvas — about 0.5% of the time is layout, the rest is host writes.
 
 Do **not** compare render time before/after a change on a live canvas: the same render measured
 6 623 ms and 6 630 ms on an unchanged document, then 5.7 s → 6.6 s as the file grew while making
