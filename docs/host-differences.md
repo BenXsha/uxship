@@ -82,6 +82,17 @@ not emit `GRID`; the pipeline's main line is flex auto-layout.
 Treating `isComponentRoot()` as "is the main" once classified a user's selected copy as a main. The
 lesson generalises: grep the vendor type file and read the member's description text.
 
+### Team libraries must be connected in Penpot first
+
+The Penpot plugin can **read** the libraries a file has connected, but it never calls the host's
+`connectLibrary` — so a library has to be connected in Penpot's UI before any `team_library_*` /
+`team_component_*` call can see it. Observed: `team_library_list` returns only the open document
+(`externalCount: 0`, `componentCount` 0) and the response says why.
+
+This is an **adapter limitation, not a host one**: `library.availableLibraries()` and
+`library.connectLibrary(id)` both exist in the Penpot plugin API, and the test fake already
+implements them — the wiring is simply not done. Until it is, connect the library in the UI.
+
 ### Host calls are synchronous: cost is call *count*, not elapsed parallelism
 
 `penpot.*` is a synchronous proxy between the plugin iframe and the host — `createBoard()` returns an
@@ -150,6 +161,23 @@ Read the response fields to tell which path ran.
 
 Note that `node_align` (aligning objects to each other) is not container alignment
 (`primaryAxisAlignItems` / `counterAxisAlignItems` inside a flex container).
+
+## Local file access is bounded by the server's working directory
+
+`code_to_design.filePath`, `node_export_image.saveToPath` and `node_export_batch.savePath` must
+resolve inside the directory the **server was started in** (`process.cwd()`); anything else is
+refused with `Access denied: … must be within the project directory`. Two consequences worth knowing
+before blaming the tool:
+
+- **Where you launch the server decides which files it can touch.** Started from `mcp-server/`, it
+  cannot render `examples/*.html`; started from the repository root, it can. The shipped
+  process-manager/systemd setups use the repository root for exactly this reason.
+- The check is a prefix test done correctly: a sibling directory sharing the prefix
+  (`/work/proj-evil`) is rejected, and `..`/duplicate separators are normalised first
+  (`mcp-server/tests/path-guard.test.ts` covers both).
+
+Starting the server from a parent of the files you want to reach is enough; there is no separate
+allow-list setting.
 
 ## Instruments
 
