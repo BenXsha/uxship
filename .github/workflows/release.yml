@@ -1,0 +1,169 @@
+name: Release
+
+# 只有打 tag 才发布：v3.0.0 / v3.1.0-rc.1 …
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 只做构建与校验，不真正 publish
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# 注意：`id-token: write` 只加在真正要发布的 publish job 上（最小权限）。
+# 它是 OIDC trusted publishing 的前提，也是 zizmor 把 release 工作流标为
+# “privileged” 的原因 —— 所以别把它提到 workflow 级别，更别给不需要的 job。
+
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
+jobs:
+  verify:
+    name: verify tag matches version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      # release 是特权工作流（tag 触发 + 发布），共享缓存被投毒可能把别人的代码注进发布产物；
+      # 而本步显式 `cache: ''`，根本不读 Actions 缓存，无可投毒面。
+      # zizmor: ignore[cache-poisoning]
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          # 显式关闭缓存：release 是特权工作流（tag 触发 + OIDC），
+          # 共享缓存被投毒就可能把别人的代码注进发布产物。
+          # 这里本来也没开缓存，写出来是为了让审计工具和后来者都看得见。
+          cache: ''
+
+      - id: v
+        name: tag 与包版本必须一致
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="$(node -p "require('./mcp-server/package.json').version")"
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::tag $TAG 与 mcp-server/package.json 的 v$VERSION 不一致 —— 拒绝发布"
+            exit 1
+          fi
+          # 四个包必须同版本（插件是服务端的宿主适配器，版本必须配套）
+          for f in package.json plugin-mastergo/package.json plugin-penpot/package.json; do
+            V="$(node -p "require('./$f').version")"
+            if [ "$V" != "$VERSION" ]; then
+              echo "::error::$f 的 $V 与 mcp-server 的 $VERSION 不一致"
+              exit 1
+            fi
+          done
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "✅ 版本一致：v$VERSION"
+
+  build-and-test:
+    name: build + test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: verify
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      # release 是特权工作流（tag 触发 + 发布），共享缓存被投毒可能把别人的代码注进发布产物；
+      # 而本步显式 `cache: ''`，根本不读 Actions 缓存，无可投毒面。
+      # zizmor: ignore[cache-poisoning]
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          # 显式关闭缓存：release 是特权工作流（tag 触发 + OIDC），
+          # 共享缓存被投毒就可能把别人的代码注进发布产物。
+          # 这里本来也没开缓存，写出来是为了让审计工具和后来者都看得见。
+          cache: ''
+
+      - name: Enable yarn 1.x
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+          yarn --version
+
+      - name: Install
+        run: |
+          set -euo pipefail
+          (cd mcp-server && npm ci)
+          (cd plugin-mastergo && yarn install --frozen-lockfile)
+          (cd plugin-penpot && yarn install --frozen-lockfile)
+
+      - name: Test
+        run: |
+          set -euo pipefail
+          (cd mcp-server && npm test)
+          (cd plugin-mastergo && yarn typecheck && yarn test)
+          (cd plugin-penpot && yarn typecheck && yarn test)
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          npm run build:server
+          npm run build:plugin
+          npm run build:penpot
+
+      - name: Repo gates
+        run: |
+          set -euo pipefail
+          npm run license:check
+          npm run docs:check
+          npm run skill:check
+
+      # 发布前最后一道：确认要发出去的东西里没有内部文档 / 个人信息
+      - name: Public snapshot check
+        run: node scripts/export-public.mjs --check
+
+  publish:
+    name: publish @uxship/mcp-server
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [verify, build-and-test]
+    # tag push 直接发；手动触发则要显式把 dry-run 关掉
+    if: github.event_name == 'push' || inputs.dry-run == false
+    environment: npm
+    permissions:
+      contents: read
+      # npm trusted publishing（OIDC）需要它；有它就不必存长期 NPM_TOKEN
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      # release 是特权工作流（tag 触发 + 发布），共享缓存被投毒可能把别人的代码注进发布产物；
+      # 而本步显式 `cache: ''`，根本不读 Actions 缓存，无可投毒面。
+      # zizmor: ignore[cache-poisoning]
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          # 显式关闭缓存：release 是特权工作流（tag 触发 + OIDC），
+          # 共享缓存被投毒就可能把别人的代码注进发布产物。
+          # 这里本来也没开缓存，写出来是为了让审计工具和后来者都看得见。
+          cache: ''
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        working-directory: mcp-server
+        run: npm ci
+
+      - name: Build
+        run: npm run build:server
+
+      # --provenance 需要 id-token: write，且 npm 侧要开启 trusted publishing
+      # （npm 包设置里绑定本 workflow；没绑定就配 NPM_TOKEN 并去掉 --provenance）
+      - name: Publish
+        working-directory: mcp-server
+        run: npm publish --provenance --access public

@@ -1,0 +1,206 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# 同一分支连推多次时取消上一次 —— PR 上尤其省资源
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # 三个包的 tsc / vite 在同一个小 runner 上会比较吃内存
+  NODE_OPTIONS: --max-old-space-size=4096
+  # corepack 在没有 TTY 的 CI 里不要卡在交互式下载确认上
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
+jobs:
+  # ── 廉价门禁：根 package.json 零依赖，所以不装依赖，几十秒出结果 ──
+  # 放最前面是为了让「文档/许可/副本漂移」这类问题秒级失败，不占用测试矩阵。
+  repo-gates:
+    name: repo gates (licence · docs links · skill copy · pi hook)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+
+      # 运行时依赖无强 copyleft + 资产集合白名单 + THIRD-PARTY-NOTICES.md 存在/可解析
+      - name: Licence gate
+        run: npm run license:check
+
+      # Markdown 相对链接无死链
+      - name: Docs links
+        run: npm run docs:check
+
+      # skills/design（源）与实际部署副本的一致性；含「旧名副本」检测，
+      # 否则副本全叫旧名时脚本会静默放行（历史事故：AI 照过期说明书调工具）
+      - name: Skill copy consistency
+        run: npm run skill:check
+
+      # pi 启动钩子：幂等 / 并发只有 1 个真拉起 / 不碰生产端口 15489-15490
+      - name: pi hook self-check
+        run: npm run pi:verify
+
+  # ── 三包 typecheck + 单测 ──
+  # matrix 按计划跑 node 20 / 22 / 24（vitest 4 的 engines 正好是 ^20 || ^22 || >=24）
+  test:
+    name: test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # 两个插件用 yarn 1.x + yarn.lock。不 `npm i -g yarn`（避免在 CI 里
+      # ad-hoc 装全局包），改用 node 自带的 corepack 把版本钉在 lockfile 那一档
+      - name: Enable yarn 1.x
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+          yarn --version
+
+      - name: Install mcp-server
+        working-directory: mcp-server
+        run: npm ci
+
+      - name: Install plugin-mastergo
+        working-directory: plugin-mastergo
+        run: yarn install --frozen-lockfile
+
+      - name: Install plugin-penpot
+        working-directory: plugin-penpot
+        run: yarn install --frozen-lockfile
+
+      - name: Typecheck mcp-server
+        working-directory: mcp-server
+        run: npx tsc --noEmit
+
+      - name: Test mcp-server
+        working-directory: mcp-server
+        run: npm test
+
+      - name: Typecheck + test plugin-mastergo
+        working-directory: plugin-mastergo
+        run: yarn typecheck && yarn test
+
+      - name: Typecheck + test plugin-penpot
+        working-directory: plugin-penpot
+        run: yarn typecheck && yarn test
+
+  # ── 构建 + 产物验证 ──
+  # 单测跑的是源码（vitest 直接 import .ts），而宿主加载的是打包压缩后的产物。
+  # tree-shaking / 压缩重命名 / 作用域提升的差异只在真机或这一层暴露
+  # （「测试全绿但插件报 xxx is not a function」就是这么来的），所以必须单独验产物。
+  build:
+    name: build + bundle verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+
+      - name: Enable yarn 1.x
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+          yarn --version
+
+      - name: Install mcp-server
+        working-directory: mcp-server
+        run: npm ci
+
+      - name: Install plugin-mastergo
+        working-directory: plugin-mastergo
+        run: yarn install --frozen-lockfile
+
+      - name: Install plugin-penpot
+        working-directory: plugin-penpot
+        run: yarn install --frozen-lockfile
+
+      - name: Build mcp-server
+        run: npm run build:server
+
+      - name: Build plugin-mastergo
+        run: npm run build:plugin
+
+      - name: Build plugin-penpot
+        run: npm run build:penpot
+
+      # mcp-server 的 build 会跑 copy-assets：断言声明文件跟着产物一起走
+      # （npm 只收 files 字段内的东西，声明落在包根之外就不会被收录）
+      - name: Verify mcp-server bundle
+        run: |
+          set -euo pipefail
+          test -f mcp-server/dist/index.js
+          test -f mcp-server/dist/THIRD-PARTY-NOTICES.md
+          test -d mcp-server/dist/assets/remixicon
+          echo "✅ mcp-server bundle ok"
+
+      # mastergo 侧没有 verify-bundle 脚本（UI 被 singlefile 内联进 index.html），
+      # 所以这里做最小断言：入口在 + 版本号确实被 vite define 注入
+      - name: Verify plugin-mastergo bundle
+        run: |
+          set -euo pipefail
+          test -f plugin-mastergo/dist/main.js
+          test -f plugin-mastergo/dist/index.html
+          VERSION="$(node -p "require('./mcp-server/package.json').version")"
+          grep -q "$VERSION" plugin-mastergo/dist/main.js
+          echo "✅ plugin-mastergo bundle ok（版本号 $VERSION 已注入）"
+
+      # penpot 侧有真·产物验证：用假 penpot 全局加载 dist/plugin.js，走真实入口
+      - name: Verify plugin-penpot bundle (smoke + full)
+        working-directory: plugin-penpot
+        run: node scripts/verify-bundle.mjs && node scripts/verify-bundle.mjs --full
+
+      - name: Upload bundles
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: bundles
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            plugin-mastergo/dist/**
+            plugin-penpot/dist/**
+
+  # ── 密钥/令牌扫描 ──
+  # 与 license:check 分工：那个管许可，这个管「别把 token 推上来」
+  secret-scan:
+    name: secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
