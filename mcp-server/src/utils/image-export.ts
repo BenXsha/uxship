@@ -5,20 +5,17 @@
  * 并构造 MCP CallToolResponse 格式的响应。
  */
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
-import { dirname, resolve, normalize, sep } from 'path'
-
-const ALLOWED_SAVE_DIRS = [resolve(process.cwd())]
+import { dirname } from 'path'
+import { isWithinAllowedDirs, pathDeniedMessage } from './path-guard.js'
 
 /**
  * 路径是否可写入。
  *
- * 必须用「目录 + 路径分隔符」做边界判断：早期用 `resolved.startsWith(dir)` 时，
- * 与项目同前缀的兄弟目录（如 `/x/proj-evil/a.png`）会被误放行。
- * 导出给单测（`tests/path-guard.test.ts`）。
+ * 口径（信任根、`..` 逃逸、同前缀兄弟目录）统一在 `path-guard.ts` —— 本文件不再自带一份白名单。
+ * 导出给单测（`tests/path-guard.test.ts`）与 `export-batch-save.ts`。
  */
 export function isSafeSavePath(filePath: string): boolean {
-  const resolved = resolve(normalize(filePath))
-  return ALLOWED_SAVE_DIRS.some((dir) => resolved === dir || resolved.startsWith(dir + sep))
+  return isWithinAllowedDirs(filePath)
 }
 
 interface ImageExportResult {
@@ -53,7 +50,7 @@ export function saveImageToFile(
   saveToPath: string
 ): { filePath: string; fileSize: number; mimeType: string } {
   if (!isSafeSavePath(saveToPath)) {
-    throw new Error(`Access denied: saveToPath must be within the project directory`)
+    throw new Error(pathDeniedMessage('saveToPath'))
   }
   // 确保目录存在
   const dir = dirname(saveToPath)

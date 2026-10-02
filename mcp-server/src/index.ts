@@ -131,6 +131,8 @@ Options:
   HOST                          监听地址 (默认 127.0.0.1)
   UXSHIP_MODE                 后端模式 (auto/http/plugin)
   UXSHIP_MCP_TOKEN            可选访问令牌；设置后 /sse /messages /mcp 需鉴权（/health 始终公开）
+  UXSHIP_ALLOWED_BASE_DIRS    本地文件读写的**额外信任根**（用路径分隔符分隔，如 /a:/b）。
+                              filePath / savePath 必须落在信任根内；默认 = cwd + 本包所在仓库/包的根
   UXSHIP_MCP_CORS_ORIGIN      可选 CORS 源（默认不发 CORS 头）
 
 多后端说明:

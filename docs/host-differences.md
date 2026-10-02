@@ -162,22 +162,30 @@ Read the response fields to tell which path ran.
 Note that `node_align` (aligning objects to each other) is not container alignment
 (`primaryAxisAlignItems` / `counterAxisAlignItems` inside a flex container).
 
-## Local file access is bounded by the server's working directory
+## Local file access is bounded by a trust-root list
 
 `code_to_design.filePath`, `node_export_image.saveToPath` and `node_export_batch.savePath` must
-resolve inside the directory the **server was started in** (`process.cwd()`); anything else is
-refused with `Access denied: … must be within the project directory`. Two consequences worth knowing
-before blaming the tool:
+resolve inside one of the server's **trust roots**; anything else is refused, and the error lists the
+roots currently in effect (plus how to add one). The roots are, in order:
 
-- **Where you launch the server decides which files it can touch.** Started from `mcp-server/`, it
-  cannot render `examples/*.html`; started from the repository root, it can. The shipped
-  process-manager/systemd setups use the repository root for exactly this reason.
-- The check is a prefix test done correctly: a sibling directory sharing the prefix
-  (`/work/proj-evil`) is rejected, and `..`/duplicate separators are normalised first
-  (`mcp-server/tests/path-guard.test.ts` covers both).
+1. `UXSHIP_ALLOWED_BASE_DIRS` — extra roots you declare, separated by `path.delimiter` (the escape
+   hatch when the files live somewhere else);
+2. the server's **working directory** — the most common intent;
+3. the root of the repository/package the **server code itself** lives in.
 
-Starting the server from a parent of the files you want to reach is enough; there is no separate
-allow-list setting.
+Root 3 exists because roots 1–2 alone made the behaviour depend on *how* the server was launched:
+started from `mcp-server/` it could not render the repository's own `examples/*.html`, and a client
+that spawns the server itself leaves the working directory at the package location — so a user's own
+project files were all out of range. The symptom was `Access denied: … must be within the project
+directory` on a path that was obviously fine, which reads like a broken tool rather than a policy.
+
+Two properties worth knowing before blaming the guard:
+
+- the check is a prefix test done correctly — a sibling directory sharing the prefix
+  (`/work/proj-evil` vs `/work/proj`) is rejected, and `..`/duplicate separators are normalised
+  first (`mcp-server/tests/path-guard.test.ts` covers both);
+- **roots are parents, not sandboxes.** Anything under a trusted root is allowed, so a directory
+  inside the repository is reachable even if it is not under the server's working directory.
 
 ## Instruments
 

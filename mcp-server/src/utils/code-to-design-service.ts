@@ -8,20 +8,18 @@
  */
 import * as dns from 'dns'
 import { existsSync, readFileSync } from 'fs'
-import { resolve, normalize, sep } from 'path'
+import { isWithinAllowedDirs, pathDeniedMessage } from './path-guard.js'
 
 const MAX_HTML_BYTES = 1 * 1024 * 1024 // 1MB
-const ALLOWED_BASE_DIRS = [resolve(process.cwd())]
 
 /**
  * 路径是否可读。
  *
- * 同 `image-export.isSafeSavePath`：必须用「目录 + 路径分隔符」边界判断，
- * 否则同前缀兄弟目录会被绕过。导出给单测（`tests/path-guard.test.ts`）。
+ * 口径（信任根、`..` 逃逸、同前缀兄弟目录）统一在 `path-guard.ts`。
+ * 导出给单测（`tests/path-guard.test.ts`）。
  */
 export function isSafePath(filePath: string): boolean {
-  const resolved = resolve(normalize(filePath))
-  return ALLOWED_BASE_DIRS.some((dir) => resolved === dir || resolved.startsWith(dir + sep))
+  return isWithinAllowedDirs(filePath)
 }
 
 export interface HtmlSource {
@@ -34,13 +32,13 @@ export interface HtmlSource {
  * 从工具参数中读取 HTML 内容
  * 支持 filePath（文件路径）或 html（内联字符串）两种来源
  */
-export async function readHtmlContent(args: Record<string, any> | undefined): Promise<HtmlSource> {
+export async function readHtmlContent(args: Record<string, unknown> | undefined): Promise<HtmlSource> {
   const filePath = args?.filePath as string | undefined
   const htmlString = args?.html as string | undefined
 
   if (filePath && typeof filePath === 'string') {
     if (!isSafePath(filePath)) {
-      throw new Error(`Access denied: filePath must be within the project directory`)
+      throw new Error(pathDeniedMessage('filePath'))
     }
     if (!existsSync(filePath)) {
       throw new Error(`File not found: ${filePath}`)
@@ -69,7 +67,7 @@ export function extractBodyContent(html: string): string {
 /**
  * 渲染模式解析
  */
-export function resolveRenderMode(_args: Record<string, any> | undefined): 'client' {
+export function resolveRenderMode(_args: Record<string, unknown> | undefined): 'client' {
   return 'client'
 }
 
@@ -111,7 +109,14 @@ async function fetchWithLimit(urlStr: string): Promise<ArrayBuffer> {
     throw new Error('Only HTTPS image URLs are allowed')
   }
 
-  const parsed = new URL(urlStr)
+  // 已过 https 前缀检查，但畸形 URL（或超长）仍会让 new URL 抛 TypeError ——
+  // 抛出去会是看不懂的 "Invalid URL"，这里换成带原串的明确报错。
+  let parsed: URL
+  try {
+    parsed = new URL(urlStr)
+  } catch {
+    throw new Error(`Invalid image URL: ${urlStr}`)
+  }
   if (await isPrivateHost(parsed)) {
     throw new Error(`Blocked image URL pointing to private/reserved IP: ${urlStr}`)
   }
