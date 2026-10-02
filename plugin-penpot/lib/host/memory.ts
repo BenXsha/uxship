@@ -259,6 +259,18 @@ export class MemoryHost implements HostAdapter {
       children: [],
       props: { ...source.props },
     }
+    /**
+     * 真机行为：克隆**组件**（母版或副本实例）得到的是**组件副本实例**，而不是普通 board。
+     *
+     * 这一点必须模拟：Penpot 的 `createVariantFromComponents` 只接受普通 board，副本实例会被后端拒
+     * （`Value not valid: [object ShapeProxy],… Code: :shapes`）。替身不模拟，“拿克隆出来的组件当普通
+     * board 用”这类缺陷在单测里永远看不见（真机一跑就硬失败）。
+     */
+    const props = copy.props as Record<string, unknown>
+    if (props.isComponentMainInstance === true || props.isComponentCopyInstance === true) {
+      delete props.isComponentMainInstance
+      props.isComponentCopyInstance = true
+    }
     this.nodes.set(copy.id, copy)
     return copy
   }
@@ -564,18 +576,29 @@ export class MemoryHost implements HostAdapter {
     const master = this.requireNode(nodes[0].id)
     const componentName = name ?? master.name
     const componentId = `component-${this.components.length + 1}`
+    /**
+     * 母版本体的身份标记。
+     *
+     * 不模拟它，就无法在离线验证「被替换/被克隆的是母版」这类分支 —— 真机踩到：
+     * 克隆组件（母版或副本）得到的是**副本实例**，而 Penpot 的 `createVariantFromComponents`
+     * 只接受普通 board（副本会被后端拒 `Code: :shapes`）。见 cloneNode。
+     */
+    ;(master.props as Record<string, unknown>).isComponentMainInstance = true
     this.components.push({ id: componentId, name: componentName, isLocal: true, masterNodeId: master.id })
     return { componentId, nodeId: master.id, name: componentName }
   }
 
   async detachInstance(node: HostNode): Promise<{ detached: boolean; note?: string }> {
     const target = this.requireNode(node.id)
-    const wasInstance = target.kind === 'instance'
+    const props = target.props as Record<string, unknown>
+    const wasInstance = target.kind === 'instance' || props.isComponentCopyInstance === true
     // SAFETY: MemoryHost 自己造节点就是普通可变对象（kind/type 均为普通字段），
     // 断言成可变形状只为了把 "instance" 原地降级成 frame —— 与 PenpotHost.detach 的语义对齐。
     const mutable = target as unknown as { kind: string; type: string }
     mutable.kind = 'frame'
     mutable.type = 'board'
+    // detach 后不再是副本实例：否则变体合成仍会把它当副本拒掉
+    delete props.isComponentCopyInstance
     return { detached: true, note: wasInstance ? undefined : '该节点本来就不是实例（分离操作无害）' }
   }
 

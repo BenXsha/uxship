@@ -5,7 +5,7 @@
  * 都成立 —— 这也是「把能力放在能复用的那一层」的收益：不需要为每个宿主各写一遍。
  */
 import type { HandlerContext } from './index'
-import type { HostNode, NodeProperties } from '../host/types'
+import type { CreateVariantsResult, HostNode, NodeProperties } from '../host/types'
 import { normalizeColor } from '../host/color'
 
 // ───────────────────────── design/describe ─────────────────────────
@@ -13,6 +13,29 @@ import { normalizeColor } from '../host/color'
 interface DescribeOptions {
   maxDepth: number
   includeStyle: boolean
+}
+
+/**
+ * describe 输出的单个节点条目。
+ *
+ * 字段**随情况增减**（`hidden` 只在隐藏时出现、`layout` 只在有布局时出现、
+ * `children` 在截断时是描述字符串），所以这里刻意是开放记录而不是封闭接口 ——
+ * 但它是**具名类型**，调用方不会拿到无标记的 `unknown`。
+ */
+type DescribeNodeEntry = Record<string, unknown>
+
+/** `design/describe` 的返回：顶层小结 + 节点树 */
+interface DescribeResult {
+  ok: true
+  summary: {
+    roots: number
+    visited: number
+    truncatedBranches?: number
+    source: 'nodeId' | 'selection' | 'page'
+  }
+  depth: number
+  includeStyle: boolean
+  nodes: DescribeNodeEntry[]
 }
 
 /**
@@ -85,7 +108,7 @@ function styleSummary(context: HandlerContext, node: HostNode): Record<string, u
 export function handleDesignDescribe(
   params: Record<string, unknown>,
   context: HandlerContext,
-): unknown {
+): DescribeResult {
   let roots: HostNode[]
   const nodeId = typeof params.nodeId === 'string' ? params.nodeId : undefined
 
@@ -106,10 +129,10 @@ export function handleDesignDescribe(
   let visited = 0
   let truncated = 0
 
-  const walk = (node: HostNode, depth: number): Record<string, unknown> => {
+  const walk = (node: HostNode, depth: number): DescribeNodeEntry => {
     visited += 1
     const props = context.host.readProperties(node, ['id', 'type', 'name', 'x', 'y', 'width', 'height', 'children', 'characters', 'visible'])
-    const entry: Record<string, unknown> = {
+    const entry: DescribeNodeEntry = {
       name: props.name,
       type: normalizeType(props.type),
       hostType: props.type,
@@ -250,11 +273,27 @@ export async function handleComponentStateMatrix(
   const created: HostNode[] = []
   const presetsApplied: Record<string, string[]> = {}
   const presetsSkipped: Record<string, string> = {}
+  /** 源是组件时，哪些状态的副本被 detach 成了普通 board（真机必需，见下方注释） */
+  const detachedStates: string[] = []
 
   for (let index = 0; index < states.length; index += 1) {
     const state = states[index]
     const clone = await context.host.cloneNode(source)
     await context.host.applyProperties(clone, { name: `${sourceName} / ${state}` })
+
+    /**
+     * 源本身是组件（母版 / 副本实例）时，`cloneNode` 出来的是**组件副本实例**；
+     * 而 Penpot 的 `createVariantFromComponents` 只接受普通 board —— 副本实例会被后端拒：
+     * `Value not valid: [object ShapeProxy],… Code: :shapes`。
+     *
+     * 真机实测（对照）：源是普通 board 时合成成功；源是组件母版时，**即使先 `createComponent`
+     * 也照样被拒** —— 因为副本实例的身份没变。所以先把副本 detach 成普通 board 再进变体集。
+     */
+    if (context.host.readProperties(clone, ['isComponentCopyInstance'] as never).isComponentCopyInstance === true) {
+      const detached = await context.host.detachInstance(clone)
+      if (detached.detached) detachedStates.push(state)
+      else if (detached.note) presetsSkipped[state] = detached.note
+    }
 
     // 非 board 的源包一层 frame：createVariantFromComponents 只接受 board
     let frame = clone
@@ -304,10 +343,43 @@ export async function handleComponentStateMatrix(
     created.push(frame)
   }
 
-  // 合成变体集（宿主支持时走原生）
-  const variants = naming === 'variant'
-    ? await context.host.createVariants(created, variantPropertyName, states)
-    : { ok: false as const, reason: 'naming=default：按约定命名，不合成变体集' }
+  /**
+   * 合成变体集（宿主支持时走原生）。
+   *
+   * ⚠️ 两个真机坑，都在这里堆过：
+   *
+   * 1. **成员必须先转成组件母版**。Penpot 的 `createVariantFromComponents` 只接受**组件**，
+   *    直接喂普通 board 会被后端拒：`Value not valid: [object ShapeProxy],… Code: :shapes`。
+   *    走得通的 `combineVariants` 路径（`exportHandlers.ts`）也是先逐个 `createComponent` 再合成 ——
+   *    这里对齐它。`createComponent` 是**原位**转母版（节点 id 不变），`created` 仍然有效。
+   * 2. **宿主抛错必须就地兜住**。否则异常穿透到 MCP 层，调用方只看到 `Internal error`，
+   *    连为这个场景准备好的 `DS_<State>` 降级都跑不到，画布上还留一堆半成品。
+   */
+  let variants: CreateVariantsResult = { ok: false, reason: 'naming=default：按约定命名，不合成变体集' }
+  if (naming === 'variant') {
+    let convertFailure: string | undefined
+    for (let index = 0; index < created.length; index += 1) {
+      try {
+        await context.host.createComponent([created[index]])
+      } catch (error) {
+        convertFailure = `${states[index]}: ${(error as Error).message}`
+        break
+      }
+    }
+
+    if (convertFailure) {
+      variants = { ok: false, reason: `状态转组件母版失败（${convertFailure}）` }
+    } else {
+      try {
+        variants = await context.host.createVariants(created, variantPropertyName, states)
+      } catch (error) {
+        variants = {
+          ok: false,
+          reason: `宿主拒绝合成变体集：${(error as Error).message}（${created.length} 个状态已原地转成组件母版）`,
+        }
+      }
+    }
+  }
 
   if (naming === 'variant' && !variants.ok) {
     // 降级：改名成 DS_<State> 约定，并如实说明（不静默）
@@ -317,6 +389,11 @@ export async function handleComponentStateMatrix(
   }
 
   const notes: string[] = []
+  if (detachedStates.length > 0) {
+    notes.push(
+      `源是组件，克隆出的副本已 detach 成普通 board（Penpot 的变体合成只接受普通 board）：${detachedStates.join('、')}`,
+    )
+  }
   if (naming === 'variant' && !variants.ok) {
     notes.push(`未合成原生变体集（${variants.reason}）→ 已降级为 DS_<State> 命名约定`)
   }

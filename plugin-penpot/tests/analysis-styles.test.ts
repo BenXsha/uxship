@@ -140,6 +140,50 @@ describe('component/stateMatrix', () => {
     expect(host.variantSets[0].nodeIds).toHaveLength(3)
   })
 
+  it('合成前先把成员转成**组件母版**（Penpot 的 createVariantFromComponents 只接受组件）', async () => {
+    boot({ capabilities: { ops: { componentVariants: true, createComponent: true } } })
+    const cardId = await makeCard()
+    const r = await call('component/stateMatrix', { nodeId: cardId, states: ['default', 'hover'] })
+
+    expect(r.variantContainerId).toBeTruthy()
+    /**
+     * 真机踩到：直接把普通 board 喂给 `createVariantFromComponents` 会被后端拒
+     * （`Value not valid: [object ShapeProxy],… Code: :shapes`）—— 对照走得通的 combineVariants：
+     * 它先对每个成员 `createComponent` 再合成。缺这一步，整个工具会硬失败。
+     */
+    expect(host.components).toHaveLength(2)
+    expect(
+      r.nodeIds.every((id: string) => host.components.some((component) => component.masterNodeId === id)),
+    ).toBe(true)
+  })
+
+  it('源是组件母版 → 副本先 detach 再合成（真机：副本实例会被 createVariantFromComponents 拒 Code: :shapes）', async () => {
+    boot({ capabilities: { ops: { componentVariants: true, createComponent: true } } })
+    const cardId = await makeCard()
+    // 先把源转成组件母版：此后 cloneNode 出来的是「副本实例」，而不是普通 board
+    await call('node/convertToComponent', { nodeId: cardId })
+
+    const r = await call('component/stateMatrix', { nodeId: cardId, states: ['default', 'hover'] })
+
+    expect(r.variantContainerId).toBeTruthy()
+    expect(r.notes?.join()).toMatch(/detach/)
+  })
+
+  it('宿主拒绝合成 → 降级为 DS_<State> 命名并如实说明（工具本身不失败）', async () => {
+    // componentVariants:false → 宿主能力不足（等效真机上合成被拒）
+    boot({ capabilities: { ops: { componentVariants: false } } })
+    const cardId = await makeCard()
+    const r = await call('component/stateMatrix', { nodeId: cardId, states: ['default', 'hover'] })
+
+    expect(r.ok).toBe(true)
+    expect(r.variantContainerId).toBeUndefined()
+    expect(r.notes?.join()).toMatch(/DS_<State>/)
+    // 降级后名字真的改成了约定名
+    for (const id of r.nodeIds) {
+      expect(host.getNodeById(id)!.name).toMatch(/^DS_/)
+    }
+  })
+
   it('每个状态是一个独立 frame，横向排开（便于人眼对比）', async () => {
     boot({ capabilities: { ops: { componentVariants: true } } })
     const cardId = await makeCard()
