@@ -567,8 +567,6 @@ curl http://localhost:15490/health
 - \`task_plan\` / \`task_step\` / \`task_complete\` - 任务进度通知
 - 节点操作（create/update/delete/clone/move/export）、DSL 导出、样式库管理等
 
-详细文档: https://github.com/BenXsha/uxship
-
 ${changelogSection}## 许可证
 
 Apache-2.0

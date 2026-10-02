@@ -12,10 +12,6 @@
       </div>
       <p class="about-meta">
         <span>Apache-2.0</span>
-        <span class="about-sep">·</span>
-        <a class="link-text" href="https://github.com/BenXsha/uxship" target="_blank" rel="noopener">
-          github.com/BenXsha/uxship
-        </a>
       </p>
 
       <div class="about-body">
@@ -98,16 +94,6 @@ defineEmits<{ close: [] }>()
   padding: 0 var(--space-3) var(--space-3);
   font-size: var(--text-xs);
   color: var(--muted);
-}
-.about-sep {
-  color: var(--border);
-}
-.link-text {
-  color: var(--accent);
-  text-decoration: none;
-}
-.link-text:hover {
-  text-decoration: underline;
 }
 
 /* ====== 正文 ====== */
