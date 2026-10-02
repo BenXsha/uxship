@@ -1,0 +1,44 @@
+=== 引擎实测产出的 DSL（../examples/01-html-to-canvas.html）===
+Demo Page                       frame        1200 x 606     
+  Demo Page                       frame        1200 x 606     VERTICAL counter=FIXED
+    Top Bar                         frame        1200 x 64      HORIZONTAL pad=0/40/0/40 primary=FIXED counter=FIXED
+      Brand                           frame         131 x 24      HORIZONTAL gap=10
+        Brand Icon                      frame          22 x 22      
+        Brand Name                      text           45 x 24      
+        Version Badge                   frame          44 x 22      HORIZONTAL pad=0/8/0/8 primary=FIXED
+          Version Text                    text           28 x 16      
+      Top Actions                     frame         220 x 36      HORIZONTAL gap=12
+        Docs Button                     frame          96 x 36      HORIZONTAL primary=FIXED counter=FIXED
+          Docs Label                      text           26 x 20      
+        Primary Button                  frame         112 x 36      HORIZONTAL primary=FIXED counter=FIXED
+          Primary Label                   text           52 x 20      
+    Hero                            frame        1200 x 294     HORIZONTAL pad=56/40/56/40 gap=48 counter=FIXED
+      Hero Copy                       frame         560 x 166     VERTICAL gap=18 counter=FIXED
+        Hero Tag                        frame         560 x 26      HORIZONTAL pad=0/10/0/10 primary=FIXED counter=FIXED
+          Hero Tag Text                   text          106 x 18      
+        Hero Title                      text          560 x 52      
+        Hero Subtitle                   text          563 x 52      
+      Hero Stats                      frame         512 x 182     VERTICAL gap=14 counter=FIXED
+        Stat Row 1                      frame         512 x 84      HORIZONTAL pad=18/18/18/18 gap=14 counter=FIXED
+          Stat Icon 1                     frame          22 x 22      
+          Stat Text 1                     frame         430 x 48      VERTICAL gap=2 counter=FIXED
+            Stat Value 1                    text          430 x 26      
+            Stat Hint 1                     text          430 x 20      
+        Stat Row 2                      frame         512 x 84      HORIZONTAL pad=18/18/18/18 gap=14 counter=FIXED
+          Stat Icon 2                     frame          22 x 22      
+          Stat Text 2                     frame         430 x 48      VERTICAL gap=2 counter=FIXED
+            Stat Value 2                    text          430 x 26      
+            Stat Hint 2                     text          430 x 20      
+    Feature Grid                    frame        1200 x 248     HORIZONTAL pad=40/40/40/40 gap=24 counter=FIXED
+      Feature Card A                  frame         357 x 168     VERTICAL pad=24/24/24/24 gap=12 primary=FIXED
+        Card Icon A                     frame          24 x 24      
+        Card Title A                    text          307 x 26      
+        Card Body A                     text          310 x 44      
+      Feature Card B                  frame         357 x 168     VERTICAL pad=24/24/24/24 gap=12 primary=FIXED
+        Card Icon B                     frame          24 x 24      
+        Card Title B                    text          307 x 26      
+        Card Body B                     text          310 x 44      
+      Feature Card C                  frame         357 x 168     VERTICAL pad=24/24/24/24 gap=12 primary=FIXED
+        Card Icon C                     frame          24 x 24      
+        Card Title C                    text          307 x 26      
+        Card Body C                     text          308 x 22      

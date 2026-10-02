@@ -90,10 +90,16 @@ Two traps that come up constantly:
 
 ## Text
 
-Text content lives in `content`; the raw host field name (`characters`) is an adapter detail. Font
-handling differs sharply between hosts — on at least one host, naming a font family that the host
-does not have silently falls back to the default, so a font family is only emitted when the CSS names
-a concrete one. See [`host-differences.md`](host-differences.md).
+Text content lives in `content`; the raw host field name (`characters`) is an adapter detail. An
+explicit `w-[Npx]` **does** constrain a text node (measured: `w-[200px]` → 203, unconstrained → 363).
+
+When reading sizes back, note that text nodes are reported a few pixels **wider** than their CSS box
+— consistently, and reproducibly (see [`../examples/README.md`](../examples/README.md) for the probe
+numbers). Do not read a 2–3px text overflow as a layout bug; layout containers themselves are exact.
+
+Font handling differs sharply between hosts — on at least one host, naming a font family that the
+host does not have silently falls back to the default, so a font family is only emitted when the CSS
+names a concrete one. See [`host-differences.md`](host-differences.md).
 
 ## Fills, strokes, effects
 

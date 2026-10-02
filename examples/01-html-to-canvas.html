@@ -1,0 +1,91 @@
+<!--
+  Demo 1 —— HTML + Tailwind 一次成页（可直接用离线引擎验证）
+
+  这条 demo 证明的是**引擎那一段**：HTML+Tailwind → 真浏览器实测像素 → DSL。
+  它**不需要宿主**，所以任何人都能复现（见 examples/README.md）：
+
+      cd plugin-penpot
+      yarn harness:build && node scripts/serve.mjs --root harness-dist --port 4406 &
+      CHROME_FLAGS=--no-sandbox node scripts/harness-render.mjs ../examples/01-html-to-canvas.html
+
+  刻意覆盖了真机上翻过车的几类写法：
+    - flex 容器 + 显式子元素宽度（不声明宽度会被 Hug 聚拢成一团）
+    - 渐变 / 阴影 / 圆角（多层填充与效果）
+    - `data-icon` 图标（Iconify SVG → 原生可编辑 Path）
+    - badge/chip 这类圆角小标签必须自带 flex，否则盒模型会走样
+    - 每个元素都有 `data-name`（图层命名契约；覆写与换组件都按图层名查找）
+
+  字体：显式指定 `Noto Sans TC`。Penpot 的字体表是 Google Fonts 镜像，没有 PingFang /
+  微软雅黑 / Inter，写不存在的族或不写都会**静默退回宿主默认字体**（详见 docs/host-differences.md）。
+
+  注意：`data-table` / `<chart>` / `<component>` 需要**服务端预处理**，客户端引擎不展开它们，
+  所以这条 demo 只用客户端可解析的部分。要看服务端那条链，走 `code_to_design`（需要宿主）。
+-->
+<section data-name="Demo Page" class="flex flex-col w-[1200px] bg-[#F8FAFC]" style="font-family:'Noto Sans TC'">
+
+  <!-- ==================== 顶栏 ==================== -->
+  <section data-name="Top Bar" class="flex flex-row items-center justify-between w-[1200px] h-[64px] px-[40px] bg-[#FFFFFF] border-b-[1px] border-[#E2E8F0]">
+    <section data-name="Brand" class="flex flex-row items-center gap-[10px]">
+      <i data-icon="ri:stack-line" data-name="Brand Icon" class="w-[22px] h-[22px] text-[#4F46E5]"></i>
+      <p data-name="Brand Name" class="text-[16px] font-[700] text-[#0F172A] leading-[24px]">uxship</p>
+      <section data-name="Version Badge" class="flex flex-row items-center h-[22px] px-[8px] rounded-[11px] bg-[#EEF2FF]">
+        <p data-name="Version Text" class="text-[11px] font-[600] text-[#4F46E5] leading-[16px]">v3.0.0</p>
+      </section>
+    </section>
+    <section data-name="Top Actions" class="flex flex-row items-center gap-[12px]">
+      <section data-name="Docs Button" class="flex flex-row items-center justify-center w-[96px] h-[36px] rounded-[8px] bg-[#F1F5F9]">
+        <p data-name="Docs Label" class="text-[13px] font-[600] text-[#334155] leading-[20px]">文档</p>
+      </section>
+      <section data-name="Primary Button" class="flex flex-row items-center justify-center w-[112px] h-[36px] rounded-[8px] bg-[#4F46E5]">
+        <p data-name="Primary Label" class="text-[13px] font-[600] text-[#FFFFFF] leading-[20px]">开始使用</p>
+      </section>
+    </section>
+  </section>
+
+  <!-- ==================== 主视觉 ==================== -->
+  <section data-name="Hero" class="flex flex-row items-center w-[1200px] px-[40px] py-[56px] gap-[48px] bg-[linear-gradient(135deg,#1E1B4B,#4F46E5)]">
+    <section data-name="Hero Copy" class="flex flex-col w-[560px] gap-[18px]">
+      <section data-name="Hero Tag" class="flex flex-row items-center h-[26px] px-[10px] rounded-[13px] bg-[#312E81]">
+        <p data-name="Hero Tag Text" class="text-[12px] font-[600] text-[#C7D2FE] leading-[18px]">本地优先 · 不出内网</p>
+      </section>
+      <p data-name="Hero Title" class="text-[40px] font-[700] text-[#FFFFFF] leading-[52px]">把 AI 生成的设计落成原生图层</p>
+      <p data-name="Hero Subtitle" class="w-[560px] text-[16px] text-[#C7D2FE] leading-[26px]">一套 MCP 契约驱动多个画布：写进画布的是可编辑图层，读出来的是代码与设计令牌。</p>
+    </section>
+    <section data-name="Hero Stats" class="flex flex-col w-[512px] gap-[14px]">
+      <section data-name="Stat Row 1" class="flex flex-row items-center w-[512px] gap-[14px] p-[18px] rounded-[14px] bg-[#FFFFFF] shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
+        <i data-icon="ri:layout-line" data-name="Stat Icon 1" class="w-[22px] h-[22px] text-[#4F46E5]"></i>
+        <section data-name="Stat Text 1" class="flex flex-col w-[430px] gap-[2px]">
+          <p data-name="Stat Value 1" class="text-[18px] font-[700] text-[#0F172A] leading-[26px]">多宿主</p>
+          <p data-name="Stat Hint 1" class="text-[13px] text-[#64748B] leading-[20px]">同一套工具面驱动 MasterGo 与 Penpot</p>
+        </section>
+      </section>
+      <section data-name="Stat Row 2" class="flex flex-row items-center w-[512px] gap-[14px] p-[18px] rounded-[14px] bg-[#FFFFFF] shadow-[0_16px_40px_rgba(15,23,42,0.18)]">
+        <i data-icon="ri:database-2-line" data-name="Stat Icon 2" class="w-[22px] h-[22px] text-[#4F46E5]"></i>
+        <section data-name="Stat Text 2" class="flex flex-col w-[430px] gap-[2px]">
+          <p data-name="Stat Value 2" class="text-[18px] font-[700] text-[#0F172A] leading-[26px]">本地优先</p>
+          <p data-name="Stat Hint 2" class="text-[13px] text-[#64748B] leading-[20px]">渲染与预处理都在本机，设计数据不出内网</p>
+        </section>
+      </section>
+    </section>
+  </section>
+
+  <!-- ==================== 卡片区 ==================== -->
+  <section data-name="Feature Grid" class="flex flex-row w-[1200px] px-[40px] py-[40px] gap-[24px]">
+    <section data-name="Feature Card A" class="flex flex-col flex-1 p-[24px] gap-[12px] rounded-[16px] bg-[#FFFFFF] border-[1px] border-[#E2E8F0]">
+      <i data-icon="ri:magic-line" data-name="Card Icon A" class="w-[24px] h-[24px] text-[#4F46E5]"></i>
+      <p data-name="Card Title A" class="text-[18px] font-[700] text-[#0F172A] leading-[26px]">设计生成</p>
+      <p data-name="Card Body A" class="text-[14px] text-[#475569] leading-[22px]">写 HTML + Tailwind，经真实浏览器实测后落成可编辑图层。</p>
+    </section>
+    <section data-name="Feature Card B" class="flex flex-col flex-1 p-[24px] gap-[12px] rounded-[16px] bg-[#FFFFFF] border-[1px] border-[#E2E8F0]">
+      <i data-icon="ri:code-s-slash-line" data-name="Card Icon B" class="w-[24px] h-[24px] text-[#4F46E5]"></i>
+      <p data-name="Card Title B" class="text-[18px] font-[700] text-[#0F172A] leading-[26px]">设计转代码</p>
+      <p data-name="Card Body B" class="text-[14px] text-[#475569] leading-[22px]">导出 DSL、HTML + Tailwind、设计令牌与 SVG 资源。</p>
+    </section>
+    <section data-name="Feature Card C" class="flex flex-col flex-1 p-[24px] gap-[12px] rounded-[16px] bg-[#FFFFFF] border-[1px] border-[#E2E8F0]">
+      <i data-icon="ri:shield-check-line" data-name="Card Icon C" class="w-[24px] h-[24px] text-[#4F46E5]"></i>
+      <p data-name="Card Title C" class="text-[18px] font-[700] text-[#0F172A] leading-[26px]">不静默降级</p>
+      <p data-name="Card Body C" class="text-[14px] text-[#475569] leading-[22px]">宿主表达不了的能力如实上报，而不是悄悄丢掉。</p>
+    </section>
+  </section>
+
+</section>
