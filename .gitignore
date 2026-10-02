@@ -27,11 +27,9 @@ tmp/
 
 # 内部文档：不进公开仓（开源计划 §0 / §P5 要求发布前移出仓库）
 #
-# ⚠️ 注意：开源计划 §3.2 的目标树里 `docs/` 是要**公开**的
-# （architecture.md / comparison.md / adapter-spec.md / host-differences.md ...）。
-# 走到那一步时，把本行收窄成只挡内部件：
-#     docs/plans/
-#     docs/reports/
-#     docs/open-source-plan.md
-# 否则新写的公开文档会被静默忽略、推不上去。
-docs/
+# 只挡内部件 —— `docs/` 下的**公开**文档（architecture.md / comparison.md /
+# adapter-spec.md / host-differences.md / dsl-spec.md / why-local-first.md /
+# benchmarks.md，见开源计划 §3.2）照常入库，不会被误挡。
+docs/plans/
+docs/reports/
+docs/open-source-plan.md
