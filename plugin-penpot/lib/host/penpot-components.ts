@@ -353,22 +353,105 @@ export async function instantiateComponent(deps: ComponentDeps, input: {
   }
 }
 
+/**
+ * 解析变体实例所属变体集的**属性轴名**（`Variants.properties`）。
+ *
+ * 为什么要绕这一圈：官方签名是 `ShapeBase.switchVariant(pos: number, value: string)` —— 第一个参数
+ * 是**轴下标**，不是轴名。而我们的端口（`HostAdapter.switchVariant(node, propertyName, value)`）按
+ * **轴名**收参（两宿主统一口径），所以调用前必须先把名字翻成下标。
+ *
+ * 真机实测（Penpot 2.18.0）：直接把轴名当 pos 传会被后端拒 ——
+ * `Value not valid: State. Code: :pos`，而该错误会穿透到 MCP 层。
+ *
+ * 轴表来源按可靠性排序，逐个探测（任一不可读就换下一个）：
+ *   1. `shape.component()?.variants.properties` —— 变体成员组件自带 `variants`
+ *   2. `shape.variants.properties` —— 形状本身就是变体容器时
+ *   3. `shape.parent?.variants.properties` —— 实例落在变体容器里时
+ */
+/**
+ * 变体轴表的可读来源：只关心 `properties`。
+ *
+ * 为什么 `properties` 写 `unknown`：这些成员（`component()` / `variants`）不在本仓 typings 里，
+ * 运行时形状不能靠类型背书 —— 取值后必须自己逐项校验，`unknown` 正是让校验有意义的前提。
+ */
+type VariantAxesSource = { properties?: unknown } | null | undefined
+
+function resolveVariantAxes(shape: PenpotShape): string[] | null {
+  // SAFETY: `component()` 未收录进本仓 typings（官方 ShapeBase 有 `component(): LibraryComponent | null`）；
+  // 按可缺失探测 —— 读不到或抛错只意味着“换个来源”，不代表调用失败。
+  //
+  // ⚠️ 必须再走一级 `.variants`：变体成员组件的轴表在 `component().variants.properties`，
+  // 而组件对象自己**没有** `properties`。少了这一级，真机上就会退成
+  // 「读不到变体集的属性轴」——真机实测踩到过。
+  const readComponent = (): VariantAxesSource =>
+    (shape as unknown as { component?: () => { variants?: VariantAxesSource } | null }).component?.call(shape)?.variants
+  // SAFETY: 同上 —— `variants` 只在变体容器 / 变体成员组件上存在（官方 `Variants`）。
+  const readOwnVariants = (): VariantAxesSource => (shape as unknown as { variants?: VariantAxesSource }).variants
+  // SAFETY: 同上 —— typings 里 `parent` 是 PenpotShape，其 `variants` 可选且未声明。
+  const readParentVariants = (): VariantAxesSource => (shape as unknown as { parent?: { variants?: VariantAxesSource } }).parent?.variants
+
+  for (const read of [readComponent, readOwnVariants, readParentVariants]) {
+    let source: VariantAxesSource
+    try {
+      source = read()
+    } catch {
+      continue // 该来源不可读（非组件实例 / 旧版宿主）
+    }
+    const properties = source?.properties
+    if (Array.isArray(properties) && properties.length > 0 && properties.every((item) => typeof item === 'string')) {
+      return properties as string[]
+    }
+  }
+  return null
+}
+
 export async function switchVariant(deps: ComponentDeps,
   node: HostNode,
   propertyName: string,
   value: string,
 ): Promise<{ switched: boolean; note?: string }> {
   const shape = deps.requireShape(node, 'switchVariant')
-  // SAFETY: shape 级 switchVariant 未收录进 typings；按可缺失探测，非变体实例返回 switched:false。
-  const switchFn = (shape as unknown as { switchVariant?: (pos: string, value: string) => void }).switchVariant
+  // SAFETY: shape 级 switchVariant 未收录进本仓的 typings（官方签名为 `(pos: number, value: string)`）；
+  // 按可缺失探测以兼容旧版宿主，非变体实例返回 switched:false。
+  const switchFn = (shape as unknown as { switchVariant?: (pos: number, value: string) => void }).switchVariant
   if (typeof switchFn !== 'function') {
     return {
       switched: false,
       note: '该节点不是变体实例（Penpot 的 switchVariant 只在变体实例上可用）',
     }
   }
-  // Penpot 的 switchVariant 第一个参数是**属性名**（pos），不是下标
-  switchFn.call(shape, propertyName, value)
+
+  const axes = resolveVariantAxes(shape)
+  if (!axes) {
+    return {
+      switched: false,
+      note: `读不到变体集的属性轴，无法把「${propertyName}」映射成轴下标（该实例可能不属于变体集）`,
+    }
+  }
+  const pos = axes.indexOf(propertyName)
+  if (pos < 0) {
+    return {
+      switched: false,
+      note: `变体集没有属性轴「${propertyName}」（可用：${axes.join('、')}）`,
+    }
+  }
+
+  /**
+   * 宿主抛错不能让它穿透到工具层。
+   *
+   * 真机踩到：参数契约不符时 Penpot 直接抛 `Value not valid: … Code: :pos`，一路穿到 MCP
+   * 变成 `Internal error` —— 调用方拿不到「哪一步、为什么」，画布上还留着半成品节点。
+   * 这里转成 `switched:false + 原因`，由调用方（teamLibraryHandlers / swapComponentHandlers）
+   * 进 `notes` 如实回传。
+   */
+  try {
+    switchFn.call(shape, pos, value)
+  } catch (error) {
+    return {
+      switched: false,
+      note: `switchVariant(pos=${pos} /*${propertyName}*/, value=${value}) 失败：${(error as Error).message}`,
+    }
+  }
   return { switched: true }
 }
 

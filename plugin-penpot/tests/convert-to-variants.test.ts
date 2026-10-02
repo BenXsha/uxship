@@ -382,6 +382,99 @@ describe('PenpotHost.createVariants —— 按 mainInstance id 配对', () => {
     return host.createNode({ kind: 'frame', name, width: 100, height: 60 })
   }
 
+  /**
+   * 按**官方路径**取一个变体成员形状（变体成员上才有 `switchVariant`）：
+   * `createVariants` 回的 `containerId` → `getNodeById` → `variants.variantComponents()[i].mainInstance()`。
+   *
+   * 不去摸索替身的内部结构（比如“容器是不是 page.root 的子层”），
+   * 否则替身一改数据结构用例就会假绿/假红。
+   */
+  function memberShape(host: PenpotHost, containerId: string, index = 0) {
+    const container = host.getNodeById(containerId)
+    expect(container, '变体容器应能按 id 取回').toBeTruthy()
+    // SAFETY: 替身容器带 `variants` 句柄（`Object.defineProperty` 写成不可枚举）；
+    // 测试只需要 `variantComponents()[i].mainInstance()` 这两个成员，故只声明这两个成员。
+    const handle = (container as unknown as PenpotVariantsHandle).variants
+    const member = handle.variantComponents()[index]
+    expect(member, `应有第 ${index} 个变体成员`).toBeTruthy()
+    return member.mainInstance()
+  }
+
+  it('switchVariant 传的是**轴下标**（不是轴名）—— 传轴名会被真宿主拒（Code: :pos）', async () => {
+    const host = bootFake({ variants: true })
+    await host.init()
+
+    const a = await makeBoard(host, 'A')
+    const b = await makeBoard(host, 'B')
+    const variants = await host.createVariants([a, b], 'State', ['default', 'hover'])
+    expect(variants.ok).toBe(true)
+
+    // SAFETY: 替身形状即 HostNode（PenpotHost 层 HostNode 与宿主形状是同一对象，见 penpot.ts）。
+    const member = memberShape(host, variants.containerId as string, 0) as unknown as Parameters<typeof host.switchVariant>[0]
+    const switched = await host.switchVariant(member, 'State', 'hover')
+
+    expect(switched.switched).toBe(true)
+    // 关键断言：落到宿主的 pos 必须是**数字下标 0**，而不是字符串 'State'
+    const logged = fake.__variantLog.find((entry) => entry.op === 'switchVariant')
+    expect(logged?.args).toEqual([member.id, 0, 'hover'])
+  })
+
+  it('在**实例**上切变体：轴表走 `component().variants`（真机踩到：少了这一级就退化成「读不到轴」）', async () => {
+    const host = bootFake({ variants: true })
+    await host.init()
+
+    const a = await makeBoard(host, 'A')
+    const b = await makeBoard(host, 'B')
+    const variants = await host.createVariants([a, b], 'State', ['default', 'hover'])
+    expect(variants.ok).toBe(true)
+
+    // 走与 team_component_import / node_swap_component 相同的实例化路径：
+    // 实例的 parent 不是变体容器，所以只能靠 component().variants 拿到轴表。
+    const created = await host.instantiateComponent({ componentId: variants.componentIds?.[0] as string })
+    const instance = host.getNodeById(created.nodeId)
+    expect(instance).toBeTruthy()
+
+    const switched = await host.switchVariant(instance!, 'State', 'hover')
+    expect(switched.switched).toBe(true)
+    expect(fake.__variantLog.find((entry) => entry.op === 'switchVariant')?.args).toEqual([instance!.id, 0, 'hover'])
+  })
+
+  it('轴名不存在 → switched:false 并列出可用轴（不抛错、不动宿主）', async () => {
+    const host = bootFake({ variants: true })
+    await host.init()
+
+    const a = await makeBoard(host, 'A')
+    const b = await makeBoard(host, 'B')
+    const variants = await host.createVariants([a, b], 'State', ['default', 'hover'])
+
+    // SAFETY: 同上 —— 替身形状即 HostNode。
+    const member = memberShape(host, variants.containerId as string, 0) as unknown as Parameters<typeof host.switchVariant>[0]
+    const switched = await host.switchVariant(member, 'Size', 'L')
+
+    expect(switched.switched).toBe(false)
+    expect(switched.note).toMatch(/Size/)
+    expect(switched.note).toMatch(/State/)
+    // 没有真的去调宿主（错轴名不该产生任何写入）
+    expect(fake.__variantLog.some((entry) => entry.op === 'switchVariant')).toBe(false)
+  })
+
+  it('宿主抛错被就地兜住 → switched:false + 原因（不再穿透成 Internal error）', async () => {
+    const host = bootFake({ variants: { switchVariantError: 'Value not valid: State. Code: :pos' } })
+    await host.init()
+
+    const a = await makeBoard(host, 'A')
+    const b = await makeBoard(host, 'B')
+    const variants = await host.createVariants([a, b], 'State', ['default', 'hover'])
+
+    // SAFETY: 同上 —— 替身形状即 HostNode。
+    const member = memberShape(host, variants.containerId as string, 0) as unknown as Parameters<typeof host.switchVariant>[0]
+    const switched = await host.switchVariant(member, 'State', 'hover')
+
+    expect(switched.switched).toBe(false)
+    expect(switched.note).toMatch(/Code: :pos/)
+    expect(switched.note).toMatch(/pos=0/)
+  })
+
   it('variantComponents() 顺序故意倒置也不会配错；addProperty/renameProperty(0)/setVariantProperty(0) 都真的被调了', async () => {
     const host = bootFake({ variants: { shuffleVariantComponents: true } })
     await host.init()

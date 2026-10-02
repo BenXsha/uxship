@@ -54,6 +54,21 @@ export interface FakeShape {
   letterSpacing?: string
   /** 富文本区间替身（P2-3）：逐字样式 + `Text.getRange` */
   rangeStyle: Array<{ fontSize?: string; fontWeight?: string; letterSpacing?: string; fillColor?: string }>
+  /**
+   * 官方 `ShapeBase.switchVariant(pos: number, value: string)` 的替身。
+   *
+   * **只在变体成员上存在**（与真宿主一致：非变体实例上探测不到该方法）—— 所以它是可选的。
+   * 替身会校验 `pos` 必须是 number：真机传轴名会被后端拒（`Value not valid: State. Code: :pos`），
+   * 把它复刻到离线，才能抓住「适配层误传轴名」这类缺陷。
+   */
+  switchVariant?(pos: number, value: string): void
+  /**
+   * 官方 `ShapeBase.component(): LibraryComponent | null` 的替身（实例 → 它的库组件）。
+   *
+   * 变体**成员组件**带 `variants` 轴表；于是实例上的轴表要从 `component().variants.properties` 取
+   * —— 真机实测就是这条路径（实例的 parent 不是变体容器，所以不能只靠 `parent.variants`）。
+   */
+  component?(): { variants?: { properties: string[] } | null } | null
   getRange(start: number, end: number): unknown
   align?: string | null
   verticalAlign?: string | null
@@ -220,6 +235,13 @@ export interface FakeVariantsOptions {
   shuffleVariantComponents?: boolean
   /** 把容器名做成只读（模拟"改名不生效"），用于验证适配器如实回报期望值/实际值 */
   containerNameLocked?: boolean
+  /**
+   * 让变体成员上的 `switchVariant` 直接抛错，用于验证适配层**就地兜住**宿主异常。
+   *
+   * 真机背景：参数契约不符时 Penpot 抛 `Value not valid: … Code: :pos`，而该异常曾一路
+   * 穿到 MCP 层变成 `Internal error` —— 调用方拿不到原因，画布上还留半成品。
+   */
+  switchVariantError?: string
 }
 
 /**
@@ -516,9 +538,17 @@ export function createFakePenpot(options: FakePenpotOptions = {}): FakePenpot {
       id: nextId('component'),
       name: name ?? shape.name ?? 'Component',
       path: '',
-      instance: () => makeShape('board', { name: 'Instance' }),
+      instance: () => {
+        const instanceShape = makeShape('board', { name: 'Instance' })
+        // 官方 `ShapeBase.component()`：实例指向它的库组件（变体成员则带 variants 轴表）
+        instanceShape.component = () => record
+        attachVariantSwitcher(instanceShape)
+        return instanceShape
+      },
       mainInstance: () => shape,
       isVariant: () => false,
+      /** 变体成员组件才有的轴表（由 createVariantFromComponents 填上） */
+      variants: null as { properties: string[] } | null,
       /** 位置索引 → 写入的属性值（供断言） */
       variantProperties: {} as Record<number, string>,
       setVariantProperty(pos: number, value: string) {
@@ -527,6 +557,20 @@ export function createFakePenpot(options: FakePenpotOptions = {}): FakePenpot {
       },
     }
     return record
+  }
+
+  /**
+   * 给形状挂上 `switchVariant` 替身（官方 `ShapeBase.switchVariant(pos: number, value: string)`）。
+   *
+   * `pos` 必须是**数字轴下标**：真机传轴名会被后端拒（`Value not valid: State. Code: :pos`），
+   * 这里也抛同样的错 —— 于是“适配层误传轴名”在离线就能暴露。
+   */
+  function attachVariantSwitcher(target: FakeShape): void {
+    target.switchVariant = (pos: number, value: string) => {
+      if (variantOptions.switchVariantError) throw new Error(variantOptions.switchVariantError)
+      if (typeof pos !== 'number') throw new Error(`Value not valid: ${String(pos)}. Code: :pos`)
+      variantLog.push({ op: 'switchVariant', args: [target.id, pos, value] })
+    }
   }
 
   const variantLog: { op: string; args: unknown[] }[] = []
@@ -874,6 +918,24 @@ export function createFakePenpot(options: FakePenpotOptions = {}): FakePenpot {
         },
       }
       Object.defineProperty(container, 'variants', { value: handle, enumerable: true, configurable: true })
+
+      /**
+       * 变体成员上的 `switchVariant` 替身（官方 `ShapeBase.switchVariant(pos: number, value: string)`）。
+       *
+       * 两个关键点都照着真机来：
+       *   1. `pos` 必须是**数字轴下标** —— 传轴名会被真宿主拒（`Value not valid: State. Code: :pos`），
+       *      这里也抛同样的错，于是“适配层误传轴名”在离线就能暴露；
+       *   2. 只在**变体成员**上有这个方法（非变体形状探测不到），与真宿主一致。
+       */
+      for (const [index, shape] of shapes.entries()) {
+        attachVariantSwitcher(shape)
+        const record = components[index]
+        if (!record) continue
+        // 成员组件带轴表，且成员形状的 `component()` 指回它 —— 与真宿主一致
+        record.variants = handle
+        shape.component = () => record
+      }
+
       if (variantOptions.containerNameLocked) {
         const fixed = container.name
         Object.defineProperty(container, 'name', {
