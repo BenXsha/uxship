@@ -18,7 +18,7 @@
  * 用法：node scripts/check-licenses.mjs
  *       （需要在三个包目录里先装好依赖：CI 里已由前面的步骤完成）
  */
-import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join, dirname, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -136,8 +136,8 @@ function classify(license) {
 
 // ---------------------------------------------------------------- 依赖扫描
 
-/** name -> 包目录（相对 ROOT） */
-const PACKAGES = ['mcp-server', 'plugin-mastergo', 'plugin-penpot']
+/** name -> 包目录（相对 ROOT）；新增包一定要加进来，否则它会静默跳过许可核验 */
+const PACKAGES = ['mcp-server', 'plugin-mastergo', 'plugin-penpot', 'packages/response-budget']
 
 console.log(`${DIM}解析已安装依赖树…${RESET}`)
 

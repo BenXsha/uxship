@@ -22,6 +22,8 @@
     "skill:sync": "node scripts/sync-skill.mjs",
     "license:check": "node scripts/check-licenses.mjs",
     "docs:check": "node scripts/check-docs-links.mjs",
+    "sync:response-budget": "node scripts/sync-response-budget.mjs",
+    "check:response-budget": "node scripts/sync-response-budget.mjs --check",
     "export:public": "node scripts/export-public.mjs",
     "build:server": "cd mcp-server && npm run build",
     "build:plugin": "cd plugin-mastergo && yarn build",

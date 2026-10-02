@@ -1,0 +1,45 @@
+{
+  "name": "mcp-response-budget",
+  "version": "3.0.0",
+  "description": "Structure-preserving truncation for MCP tool results — cut by shape, never mid-JSON",
+  "license": "Apache-2.0",
+  "author": "uxship contributors",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/esm/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.cjs.json && node scripts/finalize-cjs.mjs",
+    "test": "npm run build && vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "context-window",
+    "truncation",
+    "token-budget",
+    "llm",
+    "agent"
+  ],
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.10"
+  }
+}

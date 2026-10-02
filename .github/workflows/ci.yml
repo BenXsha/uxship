@@ -49,6 +49,10 @@ jobs:
       - name: Skill copy consistency
         run: npm run skill:check
 
+      # response-budget 唯一源与其 mcp-server 副本的双写一致性（纯字节比对，无需装依赖）
+      - name: response-budget dual-write consistency
+        run: npm run check:response-budget
+
       # pi 启动钩子：幂等 / 并发只有 1 个真拉起 / 不碰生产端口 15489-15490
       - name: pi hook self-check
         run: npm run pi:verify
@@ -150,6 +154,17 @@ jobs:
       - name: Install plugin-penpot
         working-directory: plugin-penpot
         run: yarn install --frozen-lockfile
+
+      - name: Install response-budget package
+        working-directory: packages/response-budget
+        run: npm ci
+
+      # 独立发布的包：单测 + 构建（双产物）+ pack 检查。
+      # `npm test` 自己会先 build —— 否则双入口断言会因 dist 不存在而静默跳过。
+      # pack --dry-run 能抓到 files 字段/产物路径写错 —— 那类错误发布后才发现代价最大。
+      - name: Test response-budget package
+        working-directory: packages/response-budget
+        run: npm test && npm pack --dry-run
 
       # 三包依赖都装好了，这才能核验运行时依赖的许可与资产白名单
       - name: Licence gate

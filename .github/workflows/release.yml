@@ -121,6 +121,7 @@ jobs:
           npm run license:check
           npm run docs:check
           npm run skill:check
+          npm run check:response-budget
           npm run typecheck:pi
 
       # 发布前最后一道：确认要发出去的东西里没有内部文档 / 个人信息
