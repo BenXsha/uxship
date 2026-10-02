@@ -22,11 +22,17 @@
  */
 import { readFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
-import { homedir } from 'node:os'
+import { resolveChrome, chromeNotFoundMessage, extraChromeFlags } from './chrome.mjs'
 
 const HARNESS_URL = process.env.HARNESS_URL ?? 'http://127.0.0.1:4406/dev/harness.html'
 const CDP_PORT = Number(process.env.CDP_PORT ?? 9333)
-const CHROME = process.env.CHROME_PATH ?? `${homedir()}/Library/Caches/ms-playwright/chromium-1234/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`
+
+// 浏览器定位与 `--no-sandbox` 那个坑的来龙去脉，都在 scripts/chrome.mjs 的头部注释里
+const CHROME = resolveChrome()
+if (!CHROME) {
+  console.error(chromeNotFoundMessage())
+  process.exit(2)
+}
 
 const target = process.argv[2]
 if (!target) {
@@ -41,6 +47,7 @@ const chrome = spawn(CHROME, [
   '--headless=new', `--remote-debugging-port=${CDP_PORT}`,
   '--no-first-run', '--no-default-browser-check', '--disable-gpu',
   `--user-data-dir=${process.env.CDP_PROFILE ?? '/tmp/harness-cdp-profile'}`,
+  ...extraChromeFlags(),
   'about:blank',
 ], { stdio: 'ignore' })
 
@@ -63,7 +70,15 @@ let nextId = 0
 const pending = new Map()
 const consoleLogs = []
 ws.addEventListener('message', (event) => {
-  const message = JSON.parse(event.data)
+  // CDP 帧理应是 JSON。解析不了说明帧被截断或协议变了 —— 不静默吞掉（记一条可见日志），
+  // 但也不让一次坏帧炸掉整轮渲染：渲染要跑几十秒，半路崩掉会让人误以为是引擎的问题。
+  let message
+  try {
+    message = JSON.parse(event.data)
+  } catch {
+    consoleLogs.push(`[harness] 无法解析的 CDP 帧（已跳过）：${String(event.data).slice(0, 200)}`)
+    return
+  }
   if (message.method === 'Runtime.consoleAPICalled') {
     consoleLogs.push(message.params.args.map((a) => a.value ?? a.description ?? '').join(' '))
   }

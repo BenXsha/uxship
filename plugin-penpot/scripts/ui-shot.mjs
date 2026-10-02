@@ -17,8 +17,8 @@
 import { createRequire } from 'node:module'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { resolveChrome, chromeNotFoundMessage, extraChromeFlags } from './chrome.mjs'
 
 const require = createRequire(import.meta.url)
 const { WebSocketServer } = require('ws')
@@ -27,7 +27,12 @@ const outDir = process.argv[2] ?? '/tmp/ui-shots'
 const url = process.argv[3] ?? 'http://127.0.0.1:4405/index.html'
 const WS_PORT = 15999
 const CDP_PORT = 9444
-const CHROME = `${homedir()}/Library/Caches/ms-playwright/chromium-1234/chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`
+// 浏览器定位与 `--no-sandbox` 那个坑的来龙去脉，都在 scripts/chrome.mjs 的头部注释里
+const CHROME = resolveChrome()
+if (!CHROME) {
+  console.error(chromeNotFoundMessage())
+  process.exit(2)
+}
 
 mkdirSync(outDir, { recursive: true })
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -81,6 +86,7 @@ const chrome = spawn(CHROME, [
   '--headless=new', `--remote-debugging-port=${CDP_PORT}`,
   '--no-first-run', '--no-default-browser-check', '--disable-gpu',
   '--window-size=420,1000', `--user-data-dir=/tmp/ui-shot-profile`,
+  ...extraChromeFlags(),
   'about:blank',
 ], { stdio: 'ignore' })
 
@@ -101,7 +107,14 @@ await new Promise((resolve) => ws.addEventListener('open', resolve, { once: true
 let id = 0
 const pending = new Map()
 ws.addEventListener('message', (event) => {
-  const message = JSON.parse(event.data)
+  // 坏帧不该炸掉整轮截图（一轮要跑几十秒），但也不静默 —— 打到 stderr 让调用方看见。
+  let message
+  try {
+    message = JSON.parse(event.data)
+  } catch {
+    console.warn(`  ⚠️ 无法解析的 CDP 帧（已跳过）：${String(event.data).slice(0, 160)}`)
+    return
+  }
   if (message.id && pending.has(message.id)) { pending.get(message.id)(message); pending.delete(message.id) }
 })
 const send = (method, params = {}) => new Promise((resolve) => {
@@ -202,7 +215,16 @@ async function shot(name) {
     })`,
     returnByValue: true,
   })
-  const facts = JSON.parse(probe?.result?.result?.value ?? '{}')
+  // 探针返回的不一定是 JSON：页面表达式可能抛错，CDP 也可能回一个 error 对象。
+  // 显式标记失败，而不是当成 `{}` —— 否则后面「字段全是 null」会被误读成界面 bug。
+  let facts
+  try {
+    facts = JSON.parse(probe?.result?.result?.value ?? '{}')
+  } catch {
+    facts = {
+      probeFailed: String(probe?.result?.result?.value ?? probe?.result?.error?.message ?? 'unknown').slice(0, 300),
+    }
+  }
   probes.push({ name, ...facts })
   console.log(`  📸 ${name}.png  ${JSON.stringify(facts)}`)
 }
