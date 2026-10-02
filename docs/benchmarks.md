@@ -23,13 +23,13 @@ cost. Measured in serialized JSON characters:
 
 | Profile | Tools | Chars | vs `full` |
 |---|---|---|---|
-| `gen` *(default)* | 20 | 11 593 | **−68.5%** |
-| `core` | 17 | 10 807 | −70.7% |
-| `design` | 46 | 29 602 | −19.6% |
-| `tokens` | 21 | 13 546 | −63.2% |
-| `ops` | 18 | 6 093 | −83.5% |
+| `gen` *(default)* | 20 | 11 580 | **−68.5%** |
+| `core` | 17 | 10 799 | −70.7% |
+| `design` | 46 | 29 567 | −19.7% |
+| `tokens` | 21 | 13 528 | −63.3% |
+| `ops` | 18 | 6 105 | −83.4% |
 | `agent` | 3 | 1 144 | −96.9% |
-| `full` | 67 | 36 837 | — |
+| `full` | 67 | 36 814 | — |
 
 Reading this honestly:
 

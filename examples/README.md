@@ -67,11 +67,16 @@ Reading the canvas back and comparing against the engine's numbers:
 | Feature Grid | 1200 × 248 | 1200 × 248 | ✅ |
 | Feature Card A / B / C | 357 × 168 | 357 × 168 | ✅ |
 | **Brand** (hug-width) | **131** × 24 | **143** × 24 | ⚠️ |
+| └ Brand Name (hug-width) | 45 × 24 | 53 × 24 | ⚠️ |
+| └ Version Badge (hug-width) | 44 × 22 | 49 × 22 | ⚠️ |
 
-**Every explicitly sized node matched exactly — 10 of 10.** The one difference is a *hug-width*
-container: `Brand` has no declared width, so its size follows its text, and the host's font metrics
-measure that text 12px wider than the browser does. That is the general rule worth remembering:
-**fixed sizes survive the trip; hug sizes depend on the host's text measurement.**
+**Every explicitly sized node matched exactly — 10 of 10.** What differs is the *hug-width* chain
+under `Brand`: `Brand` has no declared width, so its size follows its children, and two of those
+children are themselves hug-sized (`Brand Name` text, `Version Badge`). The host's font metrics
+measure `Brand Name` 8px wider than the browser does and `Version Badge` 5px wider, so `Brand` comes
+out 12px wider overall. That is the general rule worth remembering:
+**fixed sizes survive the trip; hug sizes depend on the host's text measurement** — and the error
+accumulates up a hug chain.
 
 The run also emitted one `layoutWarnings` entry — worth knowing the mechanism exists:
 
@@ -134,8 +139,17 @@ node_convert_to_component { nodeId: <Feature Card A>, name: "FeatureCard" }
   → componentId d99821dd-…bfba56bd
 
 node_swap_component { nodeId: <Feature Card B>, componentId: <that>, keepSize: true }
-  → total 1, replaced 1, failed 0, carriedOver 2
+  → total 1, replaced 1, failed 0
 ```
+
+The first run of this on a real canvas reported `carriedOver: 2` — and that number was wrong in a
+way worth recording. Nothing had actually been carried: B's children are named `Card Title B` /
+`Card Body B`, so no name matched the master. The `2` came from the host reporting `visible: true`
+on *every* node, and the collector counting that no-op write as an override. `carriedOver` is now
+only incremented for properties that really landed, so this run reports no `carriedOver` field at
+all — which is the honest answer for "nothing was inherited". (Fixed in
+`plugin-penpot/lib/api/swapComponentHandlers.ts`; the regression test is
+`plugin-penpot/tests/swap-component.test.ts › carriedOver 只算真的带过的项`.)
 
 What the canvas then showed, read back with `design_describe`:
 

@@ -1,47 +1,47 @@
 {
-  "generatedAt": "2026-10-02T13:29:17.269Z",
+  "generatedAt": "2026-10-02T14:59:00.535Z",
   "note": "本地可测部分；保真度/像素对比不在此列（见 docs/benchmarks.md）",
   "toolSurface": {
     "unit": "serialized JSON characters of the tool definitions",
     "defaultProfile": "gen",
     "full": {
       "tools": 67,
-      "chars": 36837
+      "chars": 36814
     },
     "profiles": [
       {
         "profile": "gen",
         "tools": 20,
-        "chars": 11593,
+        "chars": 11580,
         "charsVsFullPct": 68.5,
         "toolsVsFullPct": 70.1
       },
       {
         "profile": "core",
         "tools": 17,
-        "chars": 10807,
+        "chars": 10799,
         "charsVsFullPct": 70.7,
         "toolsVsFullPct": 74.6
       },
       {
         "profile": "design",
         "tools": 46,
-        "chars": 29602,
-        "charsVsFullPct": 19.6,
+        "chars": 29567,
+        "charsVsFullPct": 19.7,
         "toolsVsFullPct": 31.3
       },
       {
         "profile": "tokens",
         "tools": 21,
-        "chars": 13546,
-        "charsVsFullPct": 63.2,
+        "chars": 13528,
+        "charsVsFullPct": 63.3,
         "toolsVsFullPct": 68.7
       },
       {
         "profile": "ops",
         "tools": 18,
-        "chars": 6093,
-        "charsVsFullPct": 83.5,
+        "chars": 6105,
+        "charsVsFullPct": 83.4,
         "toolsVsFullPct": 73.1
       },
       {
@@ -54,7 +54,7 @@
       {
         "profile": "full",
         "tools": 67,
-        "chars": 36837,
+        "chars": 36814,
         "charsVsFullPct": 0,
         "toolsVsFullPct": 0
       }
