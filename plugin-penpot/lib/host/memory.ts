@@ -475,6 +475,18 @@ export class MemoryHost implements HostAdapter {
         case 'name':
           out.name = target.name
           break
+        /**
+         * 真 Penpot 的 `shape.visible` 永远是布尔值（默认 true），这里按同样口径建模。
+         *
+         * 为什么必须显式建模：默认分支只回 `props.visible`（没设过就是 `undefined`），
+         * 于是「无条件把 visible 记进按名覆写表」这类只在真机才暴露的缺陷，
+         * 在 MemoryHost 下测不出来（真机 `carriedOver` 被虚增，单测全绿）。
+         * 见 `lib/api/swapComponentHandlers.ts > collectCarryOver` 与
+         * `tests/swap-component.test.ts > carriedOver 只算真的带过的项`。
+         */
+        case 'visible':
+          out.visible = (target.props as Record<string, unknown>).visible !== false
+          break
         case 'parentId':
           out.parentId = target.parentId
           break

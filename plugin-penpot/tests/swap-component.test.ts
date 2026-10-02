@@ -133,6 +133,27 @@ describe('原位替换', () => {
     expect(newRoot.children.some((c: any) => c.name === 'Extra')).toBe(false)
   })
 
+  it('carriedOver 只算真的带过的项（不把 visible:true 的空写算进去）', async () => {
+    // 母版子层叫 Title / Body；源对象子层叫 OnlyOld → 按名字**一项都不匹配**
+    const componentId = await makeComponent()
+    const created = await call('node/create', {
+      element: {
+        type: 'frame',
+        name: 'NoNameCollision',
+        size: { width: 320, height: 160 },
+        layoutMode: 'NONE',
+        children: [{ type: 'text', name: 'OnlyOld', content: '只有旧的才有', size: { width: 200 } }],
+      },
+    })
+    const sourceId = created.rootIds[0] as string
+
+    const r = await call('node/swapComponent', { nodeId: sourceId, componentId })
+    expect(r.ok).toBe(true)
+    // 真机 `visible` 恒为 true，若无条件记录它，根节点（名字沿用了 NoNameCollision）
+    // 会被算成一次带过 → 报 1。0 才是“一项都没真带过”的正确口径。
+    expect(r.results[0].carriedOver).toBeUndefined()
+  })
+
   it('carryOverOverrides:false → 用组件默认文字', async () => {
     const componentId = await makeComponent()
     const sourceId = await makeSource()

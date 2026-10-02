@@ -74,14 +74,23 @@ function locate(context: HandlerContext, node: HostNode): {
 
 /**
  * 收集子树里「图层名 → 可继承属性」。
- * 只收文本内容与可见性 —— 与 MasterGo 侧 `carryOverOverrides` 的口径一致（"按图层名继承文字/可见性"）。
+ * 只收文本内容与**隐藏**状态 —— 与 MasterGo 侧 `carryOverOverrides` 的口径一致。
+ *
+ * ⚠️ 可见性**只在 `false` 时收**：宿主（Penpot/MemoryHost）回读 `visible` 永远是布尔值，
+ * 无条件记下它会让**每一个**命名节点都进入这张表，于是 `carriedOver` 变成「与母版同名的
+ * 节点数」（连根节点都算一次），而不是「真的带过了几项覆写」。
+ * 真机实测：Demo 3 里 B 的子层叫 `Card Title B` / `Card Body B`，与母版的 A 后缀完全不匹配，
+ * 文字一项都没带过去，`carriedOver` 却报 2 —— 那 2 是 `Feature Card B`（根）与 `path`（图标
+ * 矢量，两侧同名）的 `visible:true` 空写。MasterGo 侧一直是 `if (current.isVisible === false)`，
+ * 这里对齐它。
  */
 function collectCarryOver(context: HandlerContext, root: HostNode, acc = new Map<string, { characters?: string; visible?: boolean }>()) {
   const props = context.host.readProperties(root, ['name', 'children', 'characters', 'visible'])
   const name = String(props.name ?? '')
   const entry: { characters?: string; visible?: boolean } = {}
-  if (typeof props.characters === 'string') entry.characters = props.characters
-  if (typeof props.visible === 'boolean') entry.visible = props.visible
+  if (typeof props.characters === 'string' && props.characters) entry.characters = props.characters
+  // 只在「确实隐藏」时继承；true 是默认态，记下来只会污染计数
+  if (props.visible === false) entry.visible = false
   if (Object.keys(entry).length && name) acc.set(name, entry)
 
   for (const childId of (props.children as string[] | undefined) ?? []) {
