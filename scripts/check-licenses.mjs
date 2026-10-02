@@ -228,6 +228,14 @@ if (warnings.length) {
 if (problems.length) {
   console.error(`\n${RED}许可门禁失败：${RESET}`)
   for (const p of problems) console.error(`  ${RED}✗${RESET} ${p}`)
+  // 「未安装」是环境问题、不是许可问题 —— 分开说，否则很容易被当成真的许可违规
+  if (problems.some((p) => p.includes('未安装'))) {
+    console.error(
+      `\n${DIM}提示：带「未安装」的条目说明依赖树不在本地 —— 先跑${RESET} ` +
+        `npm ci${DIM}（mcp-server）与${RESET} yarn install${DIM}（两个 plugin）再重跑。` +
+        `\n      这也是 CI 里本门禁必须放在「装完依赖」之后的 job 的原因。${RESET}`
+    )
+  }
   console.error(`\n依据：仓库内部协议审计（运行时依赖零强 copyleft / 资产集合已审计）`)
   process.exit(1)
 }

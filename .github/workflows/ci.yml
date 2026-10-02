@@ -22,9 +22,13 @@ env:
 
 jobs:
   # ── 廉价门禁：根 package.json 零依赖，所以不装依赖，几十秒出结果 ──
-  # 放最前面是为了让「文档/许可/副本漂移」这类问题秒级失败，不占用测试矩阵。
+  # 放最前面是为了让「文档/副本漂移」这类问题秒级失败，不占用测试矩阵。
+  #
+  # 注意：依赖相关的门禁（licence、产物）不在这里 —— 它们必须先装依赖，
+  # 否则 check-licenses.mjs 拿不到依赖树，会把「未安装」当成「许可不可核验」而报错
+  # （真实事故：本 job 第一版把 licence gate 放这里，main 上直接红）。
   repo-gates:
-    name: repo gates (licence · docs links · skill copy · pi hook)
+    name: repo gates (docs links · skill copy · pi hook)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -35,10 +39,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
-
-      # 运行时依赖无强 copyleft + 资产集合白名单 + THIRD-PARTY-NOTICES.md 存在/可解析
-      - name: Licence gate
-        run: npm run license:check
 
       # Markdown 相对链接无死链
       - name: Docs links
@@ -150,6 +150,10 @@ jobs:
       - name: Install plugin-penpot
         working-directory: plugin-penpot
         run: yarn install --frozen-lockfile
+
+      # 三包依赖都装好了，这才能核验运行时依赖的许可与资产白名单
+      - name: Licence gate
+        run: npm run license:check
 
       - name: Build mcp-server
         run: npm run build:server
