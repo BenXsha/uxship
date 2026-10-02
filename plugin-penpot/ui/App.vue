@@ -627,10 +627,7 @@ onUnmounted(() => {
       <span class="field__label">页面</span>
       <span class="field__value">{{ documentInfo?.pageName || '—' }}</span>
     </div>
-    <div class="field">
-      <span class="field__label">插件</span>
-      <span class="field__value mono">v{{ pluginVersion || '—' }}</span>
-    </div>
+    <!-- 插件版本已上移到弹层署名头部（与 plugin-mastergo 同结构），此处不再重复 -->
     <div class="field">
       <span class="field__label">服务端</span>
       <span class="field__value mono">{{ serverVersion ? `v${serverVersion}` : '（未连接/旧版未上报）' }}</span>

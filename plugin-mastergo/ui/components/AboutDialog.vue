@@ -1,59 +1,64 @@
 <template>
   <div class="about-overlay" @click.self="$emit('close')">
-    <div class="about-dialog">
-      <div class="about-header">
-        <h2 class="about-title">uxship for MasterGo</h2>
-        <button class="btn-close" @click="$emit('close')">×</button>
+    <div class="about-dialog" role="dialog" aria-modal="true" aria-label="关于 uxship">
+      <!-- 署名头部：与 plugin-penpot 的 AboutDialog 结构一致（uxship + 版本号 + ×） -->
+      <div class="about-head">
+        <span class="about-name">uxship</span>
+        <span class="about-version">v{{ pluginVersion }}</span>
+        <button class="btn-close" aria-label="关闭" @click="$emit('close')">×</button>
       </div>
-      <div class="about-content">
-        <div class="about-section">
-          <h3 class="about-section-title">功能说明</h3>
-          <p class="about-desc">本插件用于对接专属 MCP Server，实现 AI 大模型与 MasterGo 设计工具之间的双向通信与操作。</p>
-          <ul class="about-list">
-            <li>代码转设计：HTML+Tailwind 经客户端真实渲染后写入画布，支持 <code>data-icon</code> 图标与 <code>&lt;chart&gt;</code> 图表自动处理</li>
-            <li>设计转代码：将画布节点导出为 DSL + SVG 资产，可直接生成 HTML</li>
-            <li>高阶组件：一键生成 33 种标准 UI 组件（按钮/表单/弹窗/表格/骨架屏等）</li>
-            <li>组件状态矩阵：批量生成 default/hover/active/disabled/focused 多态组件</li>
-            <li>团队组件库：检索并导入团队库组件与样式令牌，支持组件集变体选择</li>
-            <li>换组件：实例替换主组件；普通对象（画板/矩形/文本等）可原位替换为组件实例，保持父容器与图层顺序、按图层名带过文字</li>
-            <li>画布聚焦：设计渲染完成后自动滚动 + 缩放到成果并选中；也可按节点/矩形区域/选区手动聚焦</li>
-            <li>设计系统：注册颜色/文本/效果/间距样式，并提供样式查询与应用</li>
-            <li>图标能力：Iconify 20 万+ 图标搜索、导入与矢量渲染</li>
-            <li>设计与分析：节点批量操作、结构化摘要、自然语言修改、设计自检</li>
-            <li>多会话：同时对接多个 MasterGo 文档，按代号切换目标文档</li>
-          </ul>
-        </div>
-        <div class="about-section">
-          <h3 class="about-section-title">项目</h3>
-          <div class="author-info">
-            <div class="author-item">
-              <span class="author-label">仓库：</span>
-              <span class="author-value">
-                <a href="https://github.com/BenXsha/uxship" target="_blank" class="link-text">github.com/BenXsha/uxship</a>
-              </span>
-            </div>
-            <div class="author-item">
-              <span class="author-label">许可：</span>
-              <span class="author-value">Apache-2.0</span>
-            </div>
-            <div class="author-item">
-              <span class="author-label">本地端口：</span>
-              <span class="author-value">15489</span>
-            </div>
-            <div class="author-item">
-              <span class="author-label">插件版本：</span>
-              <span class="author-value">v{{ pluginVersion }}</span>
-            </div>
+      <p class="about-meta">
+        <span>Apache-2.0</span>
+        <span class="about-sep">·</span>
+        <a class="link-text" href="https://github.com/BenXsha/uxship" target="_blank" rel="noopener">
+          github.com/BenXsha/uxship
+        </a>
+      </p>
+
+      <div class="about-body">
+        <section class="about-section">
+          <h3 class="about-section-title">宿主</h3>
+          <div class="about-item">
+            <span class="about-label">宿主</span>
+            <span class="about-value">MasterGo</span>
           </div>
-        </div>
+          <div class="about-item">
+            <span class="about-label">服务端</span>
+            <span class="about-value mono">{{ serverUrl || '—' }}</span>
+          </div>
+          <div class="about-item">
+            <span class="about-label">连接</span>
+            <span class="about-value" :class="connected ? 'is-ok' : 'is-off'">
+              {{ connected ? '已连接' : '未连接' }}
+            </span>
+          </div>
+        </section>
+
+        <section class="about-section">
+          <h3 class="about-section-title">能力</h3>
+          <ul class="about-list">
+            <li>代码转设计：HTML+Tailwind 真实渲染后写入画布，自动处理 <code>data-icon</code> 图标与 <code>&lt;chart&gt;</code> 图表</li>
+            <li>设计转代码：画布节点导出为 DSL + SVG 资产</li>
+            <li>组件：33 种标准组件、交互状态矩阵、团队库检索导入、换组件</li>
+            <li>画布：批量节点操作、自然语言修改、设计自检、渲染后自动聚焦</li>
+            <li>多会话：同时对接多个文档，按代号切换</li>
+          </ul>
+        </section>
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-/** 版本号由 vite define 从 package.json 注入（单一来源） */
+/** 版本号由 vite define 从 package.json 注入（单一来源，与 plugin-penpot 同口径） */
 const pluginVersion = __PLUGIN_VERSION__
+
+defineProps<{
+  /** 当前 MCP 服务端地址 */
+  serverUrl?: string
+  /** 是否已连上服务端 */
+  connected?: boolean
+}>()
 
 defineEmits<{
   close: []
@@ -76,28 +81,36 @@ defineEmits<{
 .about-dialog {
   background: #2d2d2d;
   border-radius: 8px;
-  padding: 20px;
+  padding: 16px;
   max-width: 400px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
 }
-.about-header {
+
+/* ====== 署名头部（与 penpot 侧同结构）====== */
+.about-head {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
+  align-items: baseline;
+  gap: 6px;
 }
-.about-title {
+.about-name {
   font-size: 16px;
   font-weight: 600;
   color: #e0e0e0;
 }
+.about-version {
+  font-size: 11px;
+  color: #757575;
+}
 .btn-close {
+  margin-left: auto;
+  align-self: center;
   background: transparent;
   border: none;
   color: #9e9e9e;
   font-size: 20px;
+  line-height: 1;
   cursor: pointer;
   padding: 0;
   width: 24px;
@@ -105,15 +118,35 @@ defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: color 0.2s;
 }
 .btn-close:hover {
   color: #e0e0e0;
 }
-.about-content {
+.about-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 12px;
+  font-size: 11px;
+  color: #757575;
+}
+.about-sep {
+  color: #616161;
+}
+.link-text {
+  color: #64b5f6;
+  text-decoration: none;
+}
+.link-text:hover {
+  text-decoration: underline;
+}
+
+/* ====== 正文 ====== */
+.about-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 .about-section {
   background: #1e1e1e;
@@ -121,10 +154,31 @@ defineEmits<{
   padding: 12px;
 }
 .about-section-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #e0e0e0;
   margin-bottom: 8px;
+}
+.about-item {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  padding: 3px 0;
+}
+.about-label {
+  color: #757575;
+  flex-shrink: 0;
+  min-width: 48px;
+}
+.about-value {
+  color: #e0e0e0;
+  word-break: break-all;
+}
+.about-value.is-ok {
+  color: #a5d6a7;
+}
+.about-value.is-off {
+  color: #9e9e9e;
 }
 .about-list {
   list-style: none;
@@ -133,8 +187,8 @@ defineEmits<{
 .about-list li {
   color: #9e9e9e;
   font-size: 11px;
-  padding: 4px 0;
-  padding-left: 12px;
+  line-height: 1.6;
+  padding: 3px 0 3px 12px;
   position: relative;
 }
 .about-list li::before {
@@ -150,29 +204,7 @@ defineEmits<{
   color: #a5d6a7;
   font-size: 10px;
 }
-.link-text {
-  color: #64b5f6;
-  text-decoration: none;
-  font-size: 11px;
-}
-.link-text:hover {
-  text-decoration: underline;
-}
-.author-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.author-item {
-  display: flex;
-  gap: 6px;
-  font-size: 11px;
-}
-.author-label {
-  color: #757575;
-  flex-shrink: 0;
-}
-.author-value {
-  color: #e0e0e0;
+.mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 </style>

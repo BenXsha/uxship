@@ -67,7 +67,12 @@
       </svg>
     </button>
 
-    <AboutDialog v-if="showAbout" @close="showAbout = false" />
+    <AboutDialog
+      v-if="showAbout"
+      :server-url="serverUrl"
+      :connected="isConnected"
+      @close="showAbout = false"
+    />
   </div>
 </template>
 
