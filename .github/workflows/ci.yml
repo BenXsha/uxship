@@ -54,8 +54,17 @@ jobs:
         run: npm run check:response-budget
 
       # pi 启动钩子：幂等 / 并发只有 1 个真拉起 / 不碰生产端口 15489-15490
-      - name: pi hook self-check
-        run: npm run pi:verify
+      #
+      # 必须先装扩展 —— 全新机器上 `~/.pi/agent/extensions/uxship.ts` 本来就不存在，
+      # 而自检的第一条就是「钩子已安装」（第一次 CI 就死在这一步）。
+      # 装到 runner.temp 而不是 HOME：不污染 runner 环境，也不会和真实用户目录撞车。
+      - name: pi hook self-check (install + verify)
+        env:
+          PI_EXTENSIONS_DIR: ${{ runner.temp }}/pi-extensions
+        run: |
+          set -euo pipefail
+          npm run pi:install-extension
+          npm run pi:verify
 
   # ── 三包 typecheck + 单测 ──
   # matrix 按计划跑 node 20 / 22 / 24（vitest 4 的 engines 正好是 ^20 || ^22 || >=24）
