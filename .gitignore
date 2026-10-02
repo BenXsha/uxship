@@ -30,6 +30,10 @@ tmp/
 # 只挡内部件 —— `docs/` 下的**公开**文档（architecture.md / comparison.md /
 # adapter-spec.md / host-differences.md / dsl-spec.md / why-local-first.md /
 # benchmarks.md，见开源计划 §3.2）照常入库，不会被误挡。
+#
+# 目录名单复数都挡（文档已从 docs/ 移到 docs/plan/）；文件名单独一条，
+# 这样它以后再换目录也不会漏出来。
+docs/plan/
 docs/plans/
 docs/reports/
-docs/open-source-plan.md
+docs/**/open-source-plan.md
