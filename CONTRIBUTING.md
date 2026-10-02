@@ -33,6 +33,17 @@ npm run install:penpot   # plugin-penpot   (yarn)
 (cd packages/response-budget && npm ci)
 ```
 
+Optional — only for the offline render instruments (`harness:render`, `ui:shot`, `verify:visual`),
+which drive a real browser over CDP:
+
+```bash
+npx playwright install chromium     # ~170 MB
+```
+
+Two things that bite here, both explained in `plugin-penpot/scripts/chrome.mjs`: use the **full**
+Chromium (headless-shell does not fire `requestAnimationFrame`, so the engine hangs), and on Ubuntu
+23.10+ you need `CHROME_FLAGS=--no-sandbox` because AppArmor blocks unprivileged user namespaces.
+
 ## The gate
 
 Everything below must pass. CI runs the same set, so a green local run means a green PR.
