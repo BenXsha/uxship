@@ -132,6 +132,19 @@ try {
   }
   for (const el of dsl.elements ?? []) walk(el)
 
+  // 文档级旁路通道也要打出来：否则「class 没解析」「节点被丢弃」「文本按单行收敛」这些
+  // 只能从 DSL 树里反推（或根本看不出来）——它们是「不静默降级」承诺的可观测面。
+  const reportedClasses = dsl._unresolvedClasses ?? []
+  if (reportedClasses.length) {
+    console.log(`\n未解析 class / 客户端渲染告警 ${reportedClasses.length} 条：`)
+    for (const item of reportedClasses) console.log(`  ${String(item).slice(0, 160)}`)
+  }
+  const layoutWarnings = dsl._layoutWarnings ?? []
+  if (layoutWarnings.length) {
+    console.log(`\n布局告警 ${layoutWarnings.length} 条：`)
+    for (const item of layoutWarnings) console.log(`  ${String(item).slice(0, 160)}`)
+  }
+
   if (skipped?.length) {
     console.log(`\n落地降级 ${skipped.length} 条：`)
     for (const s of skipped.slice(0, 10)) console.log(`  ${s.target}: ${String(s.reason).slice(0, 80)}`)

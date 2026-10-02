@@ -16,6 +16,19 @@ export function useClientRender() {
   // 图片 base64 缓存，避免同一 URL 重复 Canvas 处理（跨函数共享）
   const imageDataCache = new Map<string, string>()
 
+  /**
+   * 「样式丢失导致的图层丢弃」告警（本次渲染）。
+   *
+   * 叶子 frame 无填充/描边/子节点会被 `extractNode` 丢弃 —— 空容器在画布上本来就不可见，这个
+   * 丢弃本身没错。但如果它是**因为 class 没解析成功才变空**（离线 Tailwind 子集只认
+   * white/black/transparent + gray/slate + 任意值，所以 `bg-red-500` 会丢），那这个丢弃就是有损的：
+   * 调用方只看到一条全局 `unresolvedClasses`，看不出「因此少了一个图层」。
+   * 这条告警随 `_unresolvedClasses`（与 `renderWarnings` 同一口径）回传。
+   */
+  let droppedStyleLossWarnings: string[] = []
+  /** 本次渲染未解析的 class 名 —— 用来判断被丢弃的节点是不是「样式丢了才变空」 */
+  let unresolvedClassNames = new Set<string>()
+
   function resetState() {
     state.value = { isRendering: false, progress: '', error: null }
   }
@@ -278,7 +291,7 @@ export function useClientRender() {
     return { x, y, width, height, hasFullHeight, rect }
   }
 
-  function handleEarlyReturn(element: Element, tag: string, cs: CSSStyleDeclaration, width: number, height: number): boolean {
+  function handleEarlyReturn(_element: Element, tag: string, cs: CSSStyleDeclaration, width: number, height: number): boolean {
     if (tag === 'script' || tag === 'style' || tag === 'link') return true
     if (cs.display === 'none') return true
     if (width <= 0 && height <= 0) return true
@@ -478,7 +491,7 @@ export function useClientRender() {
     return node
   }
 
-  function extractBackgroundFills(element: Element, cs: CSSStyleDeclaration, imgFill: any, width: number, height: number, elemName: string): any[] | null {
+  function extractBackgroundFills(element: Element, cs: CSSStyleDeclaration, imgFill: any, width: number, height: number, _elemName: string): any[] | null {
     const bgColor = cssColorToRgb(cs.backgroundColor)
     const bgImage = cs.backgroundImage
     const fills: any[] = []
@@ -787,11 +800,24 @@ export function useClientRender() {
     await processChildren(element, cs, node, rect)
     fallbackEmptyText(element, cs, node, tag)
 
-    if (node.type === 'frame' && node.children.length === 0 && !node.fills && !node.strokes && !node.flexGrow) return null
+    if (node.type === 'frame' && node.children.length === 0 && !node.fills && !node.strokes && !node.flexGrow) {
+      // 有损才告警：class 里有未解析项 → 这个节点是被「样式丢失」弄空的，而不是本来就是空容器
+      const lostClasses = (element.getAttribute('class') || '')
+        .split(/\s+/)
+        .filter((cls) => cls && unresolvedClassNames.has(cls))
+      if (lostClasses.length > 0) {
+        droppedStyleLossWarnings.push(
+          `图层「${elemName}」被丢弃：class「${lostClasses.slice(0, 3).join('、')}」未解析，落地后无填充/描边/子节点（丢失 ${lostClasses.length} 项样式）`,
+        )
+      }
+      return null
+    }
     return node
   }
 
   async function renderHtml(htmlString: string): Promise<any> {
+    droppedStyleLossWarnings = []
+    unresolvedClassNames = new Set()
     state.value = { isRendering: true, progress: '注入 HTML...', error: null }
     console.log('[renderHtml] 开始渲染, HTML 长度=', htmlString.length)
 
@@ -803,12 +829,18 @@ export function useClientRender() {
       const content = bodyMatch ? bodyMatch[1].trim() : htmlString
 
       state.value = { ...state.value, progress: '浏览器渲染中...' }
-      container.innerHTML = content
+      // 用 `Range.createContextualFragment` 解析作者 HTML（与 innerHTML 同语义：同在容器上下文里解析、
+      // 同样不执行脚本），但避开 `innerHTML` 注入面 —— 这段 HTML 来自用户的 `code_to_design` 输入。
+      // 与 Penpot 侧 `useClientRender.ts` 的实现保持一致。
+      const fragRange = document.createRange()
+      fragRange.selectNodeContents(container)
+      container.appendChild(fragRange.createContextualFragment(content))
       document.body.appendChild(container)
       console.log('[renderHtml] container 已添加到 body, children=', container.children.length)
 
       const tailwindResult = applyTailwindToTree(container)
       const unresolvedClasses = tailwindResult.unresolved
+      unresolvedClassNames = new Set(unresolvedClasses)
       // 文本元素上的背景/内边距/圆角会被拦下（走告警而非静默丢弃），提示替代写法
       const renderWarnings = tailwindResult.warnings
       console.log('[renderHtml] Tailwind 已应用，未解析 class:', unresolvedClasses.length, unresolvedClasses.slice(0, 8).join(', '))
@@ -873,7 +905,7 @@ export function useClientRender() {
         const swapDsl: any = { version: '2.0', elements: cleanElements }
         // 告警文案与 class 名单一起回传（宿主侧只认 `_unresolvedClasses`，故合并进同一数组）：
         // class 名保持可机器读，末尾追加的人类可读文案负责写清替代写法。
-        const reportedClasses = [...unresolvedClasses, ...renderWarnings]
+        const reportedClasses = [...unresolvedClasses, ...renderWarnings, ...droppedStyleLossWarnings]
         if (reportedClasses.length > 0) swapDsl._unresolvedClasses = reportedClasses
         console.log('[renderHtml] 纯换组件指令 DSL:', JSON.stringify(swapDsl).substring(0, 1000))
         state.value = { isRendering: false, progress: '完成（换组件）', error: null }
@@ -901,7 +933,7 @@ export function useClientRender() {
       console.log('[renderHtml] 最终 DSL:', JSON.stringify(dsl, null, 2).substring(0, 5000))
 
       // 把未解析的 Tailwind class 随 DSL 回传：插件端 dsl/render 会把它带进响应与画布通知
-      const reportedClasses = [...unresolvedClasses, ...renderWarnings]
+      const reportedClasses = [...unresolvedClasses, ...renderWarnings, ...droppedStyleLossWarnings]
       if (reportedClasses.length > 0) dsl._unresolvedClasses = reportedClasses
 
       state.value = { isRendering: false, progress: '完成', error: null }
