@@ -107,7 +107,18 @@ export function mapTextVerticalAlign(value: NodeProperties['textAlignVertical'])
 
 export function mapGrowType(value: NodeProperties['textAutoResize']): PenpotText['growType'] {
   switch (value) {
+    /**
+     * DSL `WIDTH_AND_HEIGHT` = 「不换行，容器随文本扩展」（短标题/按钮文字/标签）。
+     *
+     * 对应 Penpot 的 `auto-width`（宽随内容），**不是** `auto-height`。
+     * 原先这里把两者都折成 `auto-height`（固定宽 + 自动高），于是宿主字体比浏览器测得宽几 px 时，
+     * 短标签就被**硬折成两行** —— 真机实测：`Hero Tag Text` 引擎 DSL 是 106×18 单行，
+     * 落画布变成 113×36 两行。renderer 头部第 2 条策略写的就是「都没给 → 自动宽（单行贴合）」，
+     * 这里对齐它（也对齐 MasterGo 侧原生 `WIDTH_AND_HEIGHT` 的行为）。
+     */
     case 'WIDTH_AND_HEIGHT':
+      return 'auto-width'
+    /** 固定宽 + 自动高（保留折行）—— 与 `auto-width` 互斥，不可合并 */
     case 'HEIGHT':
       return 'auto-height'
     case 'TRUNCATE':

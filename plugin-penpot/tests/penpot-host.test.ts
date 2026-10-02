@@ -271,6 +271,19 @@ describe('applyProperties — 属性应用顺序（关键正确性约束）', ()
     expect(growType).toBe('auto-height')
   })
 
+  it('WIDTH_AND_HEIGHT（不换行、容器随文本扩展）映射为 auto-width，而非 auto-height', async () => {
+    // 真机缺陷：两者曾合并成 auto-height（固定宽 + 自动高），宿主字体比浏览器测得宽几 px 时，
+    // 「短标签」被硬折成两行（Hero Tag Text：引擎 106×18 → 画布 113×36）。
+    const text = await host.createNode({ kind: 'text', name: 'Tag', characters: '本地优先 · 不出内网' })
+    await host.applyProperties(text, {
+      textAutoResize: 'WIDTH_AND_HEIGHT',
+      width: 106,
+      height: 18,
+    } as NodeProperties)
+
+    expect(host.readProperties(text, ['growType']).growType).toBe('auto-width')
+  })
+
   it('非文本节点上的文本属性进 skipped', async () => {
     const rect = await host.createNode({ kind: 'rectangle', name: 'R' })
     const result = await host.applyProperties(rect, { characters: '不该出现在矩形上' })
