@@ -1,0 +1,331 @@
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     ds-library.html —— 设计系统 v2 建库源（P0-1）
+
+     五段结构（渲染顺序即资产顺序）：
+       ① Tokens      三层令牌（reference / system / component）+ 角色命名
+       ② Components  变体矩阵（**扁平**：成员是 Components 的直接子层，故可被
+                      node_convert_to_component 的 containerId 作用域直接命中）
+                     成员命名契约 R6：<Type>_<Variant>_<State>（如 Button_Primary_Hover）
+       ③ States      交互态说明（视觉参考，不在 ② 的作用域内，不参与建库）
+       ④ Icons       常用图标（data-icon → 原生可编辑 Path）
+       ⑤ Usage       用法示例 Do / Don't
+
+     为什么要扁平：containerId 作用域只取容器「直接子层」。若把成员放进
+     `Button` 组 frame 里，成员落到孙层就采集不到（详见 plans/design-system-v2.md §2.1/§2.2）。
+     视觉分组靠「全宽标签 section + 成员换行」实现，不靠嵌套 frame。
+
+     跨宿主注意（rules/17-host-differences.md）：
+       - 根节点显式指定字体族（Penpot 无 Inter 等，先给存在的族）
+       - 不写 grid / conic 渐变 / 非等宽单边描边
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="w-[1440px] flex flex-col bg-[#FFFFFF]" data-name="DS-Library" style="font-family:'Noto Sans TC'">
+
+  <!-- ═══════════════════════ ① TOKENS ═══════════════════════ -->
+  <section class="flex flex-col gap-[24px] w-full p-[40px] bg-[#F8FAFC] border-b-[1px] border-[#E2E8F0]" data-name="Tokens">
+    <section class="flex flex-col gap-[4px]" data-name="Tokens-Header">
+      <p class="text-[28px] font-bold text-[#0F172A] leading-[36px]" data-name="Title">Design Tokens 设计令牌</p>
+      <p class="text-[14px] text-[#64748B] leading-[20px]" data-name="Subtitle">三层模型：reference → system → component · 角色命名</p>
+    </section>
+
+    <!-- reference：原始值 -->
+    <section class="flex flex-col gap-[12px]" data-name="Tier-Reference">
+      <p class="text-[13px] font-semibold text-[#64748B] leading-[18px]" data-name="TierLabel">reference · 原始值</p>
+      <section class="flex flex-row flex-wrap gap-[12px]" data-name="Ref-Swatches">
+        <section class="flex flex-col w-[104px] gap-[6px]" data-name="ref.indigo.600">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#4F46E5]" data-name="Ref swatch"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Ref name">indigo.600</p>
+          <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="Ref value">#4F46E5</p>
+        </section>
+        <section class="flex flex-col w-[104px] gap-[6px]" data-name="ref.indigo.700">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#3730C4]" data-name="Ref swatch"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Ref name">indigo.700</p>
+          <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="Ref value">#3730C4</p>
+        </section>
+        <section class="flex flex-col w-[104px] gap-[6px]" data-name="ref.sky.500">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#0284C7]" data-name="Ref swatch"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Ref name">sky.500</p>
+          <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="Ref value">#0284C7</p>
+        </section>
+        <section class="flex flex-col w-[104px] gap-[6px]" data-name="ref.slate.900">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#0F172A]" data-name="Ref swatch"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Ref name">slate.900</p>
+          <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="Ref value">#0F172A</p>
+        </section>
+        <section class="flex flex-col w-[104px] gap-[6px]" data-name="ref.slate.500">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#64748B]" data-name="Ref swatch"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Ref name">slate.500</p>
+          <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="Ref value">#64748B</p>
+        </section>
+        <section class="flex flex-col w-[104px] gap-[6px]" data-name="ref.slate.200">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#E2E8F0]" data-name="Ref swatch"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Ref name">slate.200</p>
+          <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="Ref value">#E2E8F0</p>
+        </section>
+      </section>
+    </section>
+
+    <!-- system：语义角色 -->
+    <section class="flex flex-col gap-[12px]" data-name="Tier-System">
+      <p class="text-[13px] font-semibold text-[#64748B] leading-[18px]" data-name="TierLabel">system · 语义角色（令牌名 data-token-*，P0-3 落绑定）</p>
+      <section class="flex flex-row flex-wrap gap-[12px]" data-name="System-Swatches">
+        <section class="flex flex-col w-[128px] gap-[6px]" data-name="system.color.primary">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#4340EA]" data-name="System swatch" data-token-fill="system.color.primary"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Token name">color.primary</p>
+        </section>
+        <section class="flex flex-col w-[128px] gap-[6px]" data-name="system.color.primary-hover">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#3730C4]" data-name="System swatch" data-token-fill="system.color.primary-hover"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Token name">color.primary.hover</p>
+        </section>
+        <section class="flex flex-col w-[128px] gap-[6px]" data-name="system.color.text">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#0F172A]" data-name="System swatch" data-token-fill="system.color.text"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Token name">color.text</p>
+        </section>
+        <section class="flex flex-col w-[128px] gap-[6px]" data-name="system.color.text-muted">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#64748B]" data-name="System swatch" data-token-fill="system.color.text-muted"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Token name">color.text.muted</p>
+        </section>
+        <section class="flex flex-col w-[128px] gap-[6px]" data-name="system.color.border">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#E2E8F0]" data-name="System swatch" data-token-fill="system.color.border"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Token name">color.border</p>
+        </section>
+        <section class="flex flex-col w-[128px] gap-[6px]" data-name="system.color.success">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#16A34A]" data-name="System swatch" data-token-fill="system.color.success"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Token name">color.success</p>
+        </section>
+        <section class="flex flex-col w-[128px] gap-[6px]" data-name="system.color.warning">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#D97706]" data-name="System swatch" data-token-fill="system.color.warning"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Token name">color.warning</p>
+        </section>
+        <section class="flex flex-col w-[128px] gap-[6px]" data-name="system.color.danger">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#DC2626]" data-name="System swatch" data-token-fill="system.color.danger"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Token name">color.danger</p>
+        </section>
+      </section>
+    </section>
+
+    <!-- component：组件专属覆写 -->
+    <section class="flex flex-col gap-[12px]" data-name="Tier-Component">
+      <p class="text-[13px] font-semibold text-[#64748B] leading-[18px]" data-name="TierLabel">component · 组件专属</p>
+      <section class="flex flex-row flex-wrap gap-[12px]" data-name="Component-Swatches">
+        <section class="flex flex-col w-[128px] gap-[6px]" data-name="component.button.bg">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#4340EA]" data-name="Component swatch" data-token-fill="component.button.bg"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Token name">button.bg</p>
+        </section>
+        <section class="flex flex-col w-[128px] gap-[6px]" data-name="component.button.text">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#FFFFFF] border-[1px] border-[#E2E8F0]" data-name="Component swatch"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Token name">button.text</p>
+        </section>
+        <section class="flex flex-col w-[128px] gap-[6px]" data-name="component.badge.info.bg">
+          <section class="w-full h-[56px] rounded-[8px] bg-[#E0F2FE]" data-name="Component swatch" data-token-fill="component.badge.info.bg"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="Token name">badge.info.bg</p>
+        </section>
+      </section>
+    </section>
+
+    <!-- radius / spacing / typography 角色样本 -->
+    <section class="flex flex-row flex-wrap gap-[24px] w-full" data-name="Scale-Samples">
+      <section class="flex flex-col w-[280px] gap-[10px] p-[16px] bg-[#FFFFFF] rounded-[8px] border-[1px] border-[#E2E8F0]" data-name="Scale-Radius">
+        <p class="text-[12px] font-semibold text-[#64748B] leading-[16px]" data-name="ScaleLabel">radius 圆角</p>
+        <section class="flex flex-row items-center gap-[12px]" data-name="sampleradius.sm">
+          <section class="w-[40px] h-[40px] rounded-[4px] bg-[#4340EA]" data-name="radius.sm.swatch" data-token-radius="system.radius.sm"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="radius.sm.label">radius.sm · 4</p>
+        </section>
+        <section class="flex flex-row items-center gap-[12px]" data-name="sampleradius.md">
+          <section class="w-[40px] h-[40px] rounded-[8px] bg-[#4340EA]" data-name="radius.md.swatch" data-token-radius="system.radius.md"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="radius.md.label">radius.md · 8</p>
+        </section>
+        <section class="flex flex-row items-center gap-[12px]" data-name="sampleradius.full">
+          <section class="w-[40px] h-[40px] rounded-full bg-[#4340EA]" data-name="radius.full.swatch" data-token-radius="system.radius.full"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="radius.full.label">radius.full · 9999</p>
+        </section>
+      </section>
+
+      <section class="flex flex-col w-[280px] gap-[10px] p-[16px] bg-[#FFFFFF] rounded-[8px] border-[1px] border-[#E2E8F0]" data-name="Scale-Spacing">
+        <p class="text-[12px] font-semibold text-[#64748B] leading-[16px]" data-name="ScaleLabel">spacing 间距</p>
+        <section class="flex flex-row items-center gap-[16px]" data-name="samplespace.4">
+          <section class="w-[16px] h-[16px] rounded-[3px] bg-[#4340EA]" data-name="space.4.swatch"></section>
+          <section class="w-[16px] h-[16px] rounded-[3px] bg-[#3730C4]" data-name="space.4.swatch2"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="space.4.label">space.4 · 16</p>
+        </section>
+        <section class="flex flex-row items-center gap-[24px]" data-name="samplespace.6">
+          <section class="w-[16px] h-[16px] rounded-[3px] bg-[#4340EA]" data-name="space.6.swatch"></section>
+          <section class="w-[16px] h-[16px] rounded-[3px] bg-[#3730C4]" data-name="space.6.swatch2"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="space.6.label">space.6 · 24</p>
+        </section>
+        <section class="flex flex-row items-center gap-[40px]" data-name="samplespace.10">
+          <section class="w-[16px] h-[16px] rounded-[3px] bg-[#4340EA]" data-name="space.10.swatch"></section>
+          <section class="w-[16px] h-[16px] rounded-[3px] bg-[#3730C4]" data-name="space.10.swatch2"></section>
+          <p class="text-[11px] text-[#0F172A] leading-[16px]" data-name="space.10.label">space.10 · 40</p>
+        </section>
+      </section>
+
+      <section class="flex flex-col w-[520px] gap-[10px] p-[16px] bg-[#FFFFFF] rounded-[8px] border-[1px] border-[#E2E8F0]" data-name="Scale-Typography">
+        <p class="text-[12px] font-semibold text-[#64748B] leading-[16px]" data-name="ScaleLabel">typography 字阶</p>
+        <section class="flex flex-row items-center gap-[16px] w-full" data-name="sampletype.h1">
+          <p class="text-[32px] font-bold text-[#0F172A] leading-[40px] w-[220px]" data-name="typography.h1" data-token-text="system.typography.h1">Heading 1</p>
+          <p class="text-[11px] text-[#64748B] leading-[16px]" data-name="type.h1.meta">32 / 700 / 40</p>
+        </section>
+        <section class="flex flex-row items-center gap-[16px] w-full" data-name="sampletype.h2">
+          <p class="text-[24px] font-bold text-[#0F172A] leading-[32px] w-[220px]" data-name="typography.h2" data-token-text="system.typography.h2">Heading 2</p>
+          <p class="text-[11px] text-[#64748B] leading-[16px]" data-name="type.h2.meta">24 / 700 / 32</p>
+        </section>
+        <section class="flex flex-row items-center gap-[16px] w-full" data-name="sampletype.body">
+          <p class="text-[14px] text-[#334155] leading-[22px] w-[220px]" data-name="typography.body" data-token-text="system.typography.body">Body text</p>
+          <p class="text-[11px] text-[#64748B] leading-[16px]" data-name="type.body.meta">14 / 400 / 22</p>
+        </section>
+        <section class="flex flex-row items-center gap-[16px] w-full" data-name="sampletype.label">
+          <p class="text-[12px] font-semibold text-[#334155] leading-[16px] w-[220px]" data-name="typography.label" data-token-text="system.typography.label">Label / caption</p>
+          <p class="text-[11px] text-[#64748B] leading-[16px]" data-name="type.label.meta">12 / 600 / 16</p>
+        </section>
+      </section>
+    </section>
+  </section>
+
+  <!-- ═══════════════════════ ② COMPONENTS ═══════════════════════ -->
+  <!-- 作用域：本 section 的**直接子层**；成员名 = <Type>_<Variant>_<State> -->
+  <section class="flex flex-row flex-wrap items-start gap-[24px] w-full p-[40px] bg-[#FFFFFF]" data-name="Components">
+
+    <section class="flex flex-col w-full gap-[4px]" data-name="Button">
+      <p class="text-[16px] font-bold text-[#0F172A] leading-[24px]" data-name="GroupLabel">Button 按钮</p>
+      <p class="text-[12px] text-[#64748B] leading-[16px]" data-name="GroupHint">Variant × State</p>
+    </section>
+    <component type='button' config='{"label":"Primary","variant":"primary","size":{"width":120,"height":40,"cornerRadius":8}}' data-name="Button_Primary_Default" />
+    <component type='button' config='{"label":"Primary","variant":"primary","size":{"width":120,"height":40,"cornerRadius":8}}' style="background-color:#3730C4" data-name="Button_Primary_Hover" />
+    <component type='button' config='{"label":"Primary","variant":"primary","size":{"width":120,"height":40,"cornerRadius":8}}' class="opacity-[0.4]" data-name="Button_Primary_Disabled" />
+    <component type='button' config='{"label":"Secondary","variant":"secondary","size":{"width":120,"height":40,"cornerRadius":8}}' data-name="Button_Secondary_Default" />
+    <component type='button' config='{"label":"Secondary","variant":"secondary","size":{"width":120,"height":40,"cornerRadius":8}}' style="background-color:#F1F5F9" data-name="Button_Secondary_Hover" />
+    <component type='button' config='{"label":"Secondary","variant":"secondary","size":{"width":120,"height":40,"cornerRadius":8}}' class="opacity-[0.4]" data-name="Button_Secondary_Disabled" />
+
+    <section class="flex flex-col w-full gap-[4px]" data-name="Badge">
+      <p class="text-[16px] font-bold text-[#0F172A] leading-[24px]" data-name="GroupLabel">Badge 徽标</p>
+      <p class="text-[12px] text-[#64748B] leading-[16px]" data-name="GroupHint">Variant（State = Default）</p>
+    </section>
+    <component type='badge' config='{"label":"Info","variant":"info"}' data-name="Badge_Info_Default" />
+    <component type='badge' config='{"label":"Success","variant":"success"}' data-name="Badge_Success_Default" />
+    <component type='badge' config='{"label":"Warning","variant":"warning"}' data-name="Badge_Warning_Default" />
+    <component type='badge' config='{"label":"Danger","variant":"danger"}' data-name="Badge_Danger_Default" />
+
+    <section class="flex flex-col w-full gap-[4px]" data-name="Input">
+      <p class="text-[16px] font-bold text-[#0F172A] leading-[24px]" data-name="GroupLabel">Input 输入框</p>
+      <p class="text-[12px] text-[#64748B] leading-[16px]" data-name="GroupHint">Variant（Default）× State</p>
+    </section>
+    <component type='text-input' config='{"placeholder":"请输入内容","size":{"width":240,"height":40,"cornerRadius":8}}' data-name="Input_Default_Default" />
+    <component type='text-input' config='{"placeholder":"聚焦状态","size":{"width":240,"height":40,"cornerRadius":8}}' style="border:2px solid #4340EA" data-name="Input_Default_Focus" />
+    <component type='text-input' config='{"placeholder":"禁用状态","size":{"width":240,"height":40,"cornerRadius":8}}' class="opacity-[0.4]" data-name="Input_Default_Disabled" />
+
+    <section class="flex flex-col w-full gap-[4px]" data-name="Toggle">
+      <p class="text-[16px] font-bold text-[#0F172A] leading-[24px]" data-name="GroupLabel">Toggle 开关</p>
+      <p class="text-[12px] text-[#64748B] leading-[16px]" data-name="GroupHint">Variant（Default）× State</p>
+    </section>
+    <component type='toggle' config='{"checked":false}' data-name="Toggle_Default_Off" />
+    <component type='toggle' config='{"checked":true}' data-name="Toggle_Default_On" />
+    <component type='toggle' config='{"checked":true}' class="opacity-[0.4]" data-name="Toggle_Default_Disabled" />
+  </section>
+
+  <!-- ═══════════════════════ ③ STATES ═══════════════════════ -->
+  <!-- 交互态视觉参考；不在 ② 作用域内，不参与建库 -->
+  <section class="flex flex-row flex-wrap items-start gap-[16px] w-full p-[40px] bg-[#F8FAFC] border-b-[1px] border-[#E2E8F0]" data-name="States">
+    <section class="flex flex-col w-full gap-[4px]" data-name="States-Header">
+      <p class="text-[16px] font-bold text-[#0F172A] leading-[24px]" data-name="GroupLabel">States 交互态</p>
+      <p class="text-[12px] text-[#64748B] leading-[16px]" data-name="GroupHint">状态约定：Default / Hover / Disabled（焦点环 2px · 对比度 ≥ 4.5:1）</p>
+    </section>
+    <section class="flex flex-col w-[160px] gap-[6px] p-[12px] bg-[#FFFFFF] rounded-[8px] border-[1px] border-[#E2E8F0]" data-name="State-Default">
+      <section class="w-full h-[36px] rounded-[8px] bg-[#4340EA]" data-name="State swatch"></section>
+      <p class="text-[12px] font-semibold text-[#0F172A] leading-[16px]" data-name="State name">Default</p>
+    </section>
+    <section class="flex flex-col w-[160px] gap-[6px] p-[12px] bg-[#FFFFFF] rounded-[8px] border-[1px] border-[#E2E8F0]" data-name="State-Hover">
+      <section class="w-full h-[36px] rounded-[8px] bg-[#3730C4]" data-name="State swatch"></section>
+      <p class="text-[12px] font-semibold text-[#0F172A] leading-[16px]" data-name="State name">Hover</p>
+    </section>
+    <section class="flex flex-col w-[160px] gap-[6px] p-[12px] bg-[#FFFFFF] rounded-[8px] border-[1px] border-[#E2E8F0]" data-name="State-Disabled">
+      <section class="w-full h-[36px] rounded-[8px] bg-[#4340EA] opacity-[0.4]" data-name="State swatch"></section>
+      <p class="text-[12px] font-semibold text-[#0F172A] leading-[16px]" data-name="State name">Disabled</p>
+    </section>
+    <section class="flex flex-col w-[160px] gap-[6px] p-[12px] bg-[#FFFFFF] rounded-[8px] border-[1px] border-[#E2E8F0]" data-name="State-Focus">
+      <section class="w-full h-[36px] rounded-[8px] bg-[#FFFFFF] border-[2px] border-[#4340EA]" data-name="State swatch"></section>
+      <p class="text-[12px] font-semibold text-[#0F172A] leading-[16px]" data-name="State name">Focus</p>
+    </section>
+  </section>
+
+  <!-- ═══════════════════════ ④ ICONS ═══════════════════════ -->
+  <section class="flex flex-row flex-wrap items-start gap-[16px] w-full p-[40px] bg-[#FFFFFF] border-b-[1px] border-[#E2E8F0]" data-name="Icons">
+    <section class="flex flex-col w-full gap-[4px]" data-name="Icons-Header">
+      <p class="text-[16px] font-bold text-[#0F172A] leading-[24px]" data-name="GroupLabel">Icons 图标</p>
+      <p class="text-[12px] text-[#64748B] leading-[16px]" data-name="GroupHint">Remix Icon（data-icon → 原生可编辑 Path）</p>
+    </section>
+    <section class="flex flex-col items-center gap-[6px] w-[88px]" data-name="icon.add">
+      <section class="flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-[#F1F5F9]" data-name="icon.add.box">
+        <i class="text-[20px] text-[#0F172A]" data-icon="ri:add-line"></i>
+      </section>
+      <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="icon.add.label">add-line</p>
+    </section>
+    <section class="flex flex-col items-center gap-[6px] w-[88px]" data-name="icon.search">
+      <section class="flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-[#F1F5F9]" data-name="icon.search.box">
+        <i class="text-[20px] text-[#0F172A]" data-icon="ri:search-line"></i>
+      </section>
+      <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="icon.search.label">search-line</p>
+    </section>
+    <section class="flex flex-col items-center gap-[6px] w-[88px]" data-name="icon.settings">
+      <section class="flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-[#F1F5F9]" data-name="icon.settings.box">
+        <i class="text-[20px] text-[#0F172A]" data-icon="ri:settings-3-line"></i>
+      </section>
+      <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="icon.settings.label">settings-3-line</p>
+    </section>
+    <section class="flex flex-col items-center gap-[6px] w-[88px]" data-name="icon.user">
+      <section class="flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-[#F1F5F9]" data-name="icon.user.box">
+        <i class="text-[20px] text-[#0F172A]" data-icon="ri:user-line"></i>
+      </section>
+      <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="icon.user.label">user-line</p>
+    </section>
+    <section class="flex flex-col items-center gap-[6px] w-[88px]" data-name="icon.check">
+      <section class="flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-[#F1F5F9]" data-name="icon.check.box">
+        <i class="text-[20px] text-[#15803D]" data-icon="ri:check-line"></i>
+      </section>
+      <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="icon.check.label">check-line</p>
+    </section>
+    <section class="flex flex-col items-center gap-[6px] w-[88px]" data-name="icon.close">
+      <section class="flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-[#F1F5F9]" data-name="icon.close.box">
+        <i class="text-[20px] text-[#DC2626]" data-icon="ri:close-line"></i>
+      </section>
+      <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="icon.close.label">close-line</p>
+    </section>
+    <section class="flex flex-col items-center gap-[6px] w-[88px]" data-name="icon.arrow">
+      <section class="flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-[#F1F5F9]" data-name="icon.arrow.box">
+        <i class="text-[20px] text-[#0F172A]" data-icon="ri:arrow-right-line"></i>
+      </section>
+      <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="icon.arrow.label">arrow-right-line</p>
+    </section>
+    <section class="flex flex-col items-center gap-[6px] w-[88px]" data-name="icon.delete">
+      <section class="flex items-center justify-center w-[40px] h-[40px] rounded-[8px] bg-[#F1F5F9]" data-name="icon.delete.box">
+        <i class="text-[20px] text-[#0F172A]" data-icon="ri:delete-bin-line"></i>
+      </section>
+      <p class="text-[10px] text-[#64748B] leading-[14px]" data-name="icon.delete.label">delete-bin-line</p>
+    </section>
+  </section>
+
+  <!-- ═══════════════════════ ⑤ USAGE ═══════════════════════ -->
+  <section class="flex flex-row flex-wrap items-start gap-[24px] w-full p-[40px] bg-[#F8FAFC]" data-name="Usage">
+    <section class="flex flex-col w-full gap-[4px]" data-name="Usage-Header">
+      <p class="text-[16px] font-bold text-[#0F172A] leading-[24px]" data-name="GroupLabel">Usage 用法</p>
+      <p class="text-[12px] text-[#64748B] leading-[16px]" data-name="GroupHint">Do / Don't</p>
+    </section>
+
+    <section class="flex flex-col w-[420px] gap-[8px] p-[16px] bg-[#FFFFFF] rounded-[8px] border-[1px] border-[#E2E8F0]" data-name="Usage-Button-Do">
+      <p class="text-[13px] font-semibold text-[#15803D] leading-[18px]" data-name="Usage verdict">✓ Do</p>
+      <p class="text-[12px] text-[#334155] leading-[18px]" data-name="Usage text">主操作使用 Primary，一屏只保留一个；次操作使用 Secondary / Outline。</p>
+    </section>
+    <section class="flex flex-col w-[420px] gap-[8px] p-[16px] bg-[#FFFFFF] rounded-[8px] border-[1px] border-[#E2E8F0]" data-name="Usage-Button-Dont">
+      <p class="text-[13px] font-semibold text-[#DC2626] leading-[18px]" data-name="Usage verdict">✗ Don't</p>
+      <p class="text-[12px] text-[#334155] leading-[18px]" data-name="Usage text">不要并排堆叠多个 Primary，也不要只用颜色区分状态（需配合文案/图标）。</p>
+    </section>
+    <section class="flex flex-col w-[420px] gap-[8px] p-[16px] bg-[#FFFFFF] rounded-[8px] border-[1px] border-[#E2E8F0]" data-name="Usage-Badge-Do">
+      <p class="text-[13px] font-semibold text-[#15803D] leading-[18px]" data-name="Usage verdict">✓ Do</p>
+      <p class="text-[12px] text-[#334155] leading-[18px]" data-name="Usage text">Badge 语义色与含义一致（Success / Warning / Danger / Info）。</p>
+    </section>
+    <section class="flex flex-col w-[420px] gap-[8px] p-[16px] bg-[#FFFFFF] rounded-[8px] border-[1px] border-[#E2E8F0]" data-name="Usage-Badge-Dont">
+      <p class="text-[13px] font-semibold text-[#DC2626] leading-[18px]" data-name="Usage verdict">✗ Don't</p>
+      <p class="text-[12px] text-[#334155] leading-[18px]" data-name="Usage text">不要把 Badge 当按钮用；可点击的用 Button / Tag。</p>
+    </section>
+  </section>
+
+</section>

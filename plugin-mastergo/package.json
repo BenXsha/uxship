@@ -1,0 +1,31 @@
+{
+  "name": "@uxship/plugin-mastergo",
+  "version": "3.0.0",
+  "description": "uxship host plugin for MasterGo (first host adapter)",
+  "main": "index.js",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "yarn dev:ui & yarn dev:main",
+    "dev:ui": "cross-env TARGET=ui NODE_ENV=development vite build --mode development -w",
+    "dev:main": "cross-env TARGET=main NODE_ENV=development vite build --mode development -w",
+    "build": "yarn build:ui && yarn build:main && rm -rf dist/assets",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build:ui": "cross-env TARGET=ui vite build",
+    "build:main": "cross-env TARGET=main vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.tests.json"
+  },
+  "dependencies": {
+    "vue": "^3.2.31"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@vitejs/plugin-vue": "^2.2.4",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.3.3",
+    "vite": "^2.8.6",
+    "vite-plugin-singlefile": "^0.7.1",
+    "vitest": "^4.1.10",
+    "@mastergo/plugin-typings": "^2.19.2"
+  }
+}

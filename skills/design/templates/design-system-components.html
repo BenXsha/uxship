@@ -1,0 +1,88 @@
+<section class="w-[1400px] flex flex-col gap-[48px]" data-name="Component-Library">
+
+  <!-- ═══ 组1：表单控件 ═══ -->
+  <section class="flex flex-col gap-[16px]" data-name="Group-Form-Controls">
+    <p class="text-[16px] font-[700] text-[#111827] leading-[24px]" data-name="GroupLabel">表单控件</p>
+
+    <!-- 按钮行 -->
+    <section class="flex flex-row gap-[16px] items-center" data-name="Row-Buttons">
+      <component type='button' config='{"label":"Primary","variant":"primary"}' class="w-[120px] h-[36px]" data-name="DS_Button_Primary" />
+      <component type='button' config='{"label":"Secondary","variant":"secondary"}' class="w-[120px] h-[36px]" data-name="DS_Button_Secondary" />
+      <component type='button' config='{"label":"Outline","variant":"outline"}' class="w-[120px] h-[36px]" data-name="DS_Button_Outline" />
+      <component type='button' config='{"label":"Text","variant":"text"}' class="w-[120px] h-[36px]" data-name="DS_Button_Text" />
+      <component type='button' config='{"label":"Disabled","variant":"primary"}' class="w-[120px] h-[36px]" data-name="DS_Button_Primary_Disabled" />
+    </section>
+
+    <!-- 输入控件行 -->
+    <section class="flex flex-row gap-[16px] items-center" data-name="Row-Inputs">
+      <component type='text-input' config='{"placeholder":"Text input..."}' class="w-[200px] h-[36px]" data-name="DS_TextInput" />
+      <component type='select' config='{"placeholder":"Choose..."}' class="w-[180px] h-[36px]" data-name="DS_Select" />
+      <component type='toggle' config='{"checked":true}' data-name="DS_Toggle" />
+      <component type='checkbox' config='{"label":"Checkbox"}' data-name="DS_Checkbox" />
+      <component type='radio' config='{"label":"Radio"}' data-name="DS_Radio" />
+      <component type='slider' config='{"percent":60}' class="w-[200px]" data-name="DS_Slider" />
+    </section>
+
+    <!-- 组控件行 -->
+    <section class="flex flex-row gap-[24px] items-start" data-name="Row-Groups">
+      <component type='checkbox-group' config='{"title":"Checkbox","items":["Option 1","Option 2","Option 3"]}' class="w-[220px]" data-name="DS_CheckboxGroup" />
+      <component type='radio-group' config='{"title":"Radio","items":["Option 1","Option 2","Option 3"]}' class="w-[220px]" data-name="DS_RadioGroup" />
+    </section>
+  </section>
+
+  <!-- ═══ 组2：展示控件 ═══ -->
+  <section class="flex flex-col gap-[16px]" data-name="Group-Display">
+    <p class="text-[16px] font-[700] text-[#111827] leading-[24px]" data-name="GroupLabel">展示控件</p>
+
+    <section class="flex flex-row gap-[16px] items-center flex-wrap" data-name="Row-Badges-Tags">
+      <component type='badge' config='{"label":"Default","variant":"default"}' data-name="DS_Badge_Default" />
+      <component type='badge' config='{"label":"Success","variant":"success"}' data-name="DS_Badge_Success" />
+      <component type='badge' config='{"label":"Warning","variant":"warning"}' data-name="DS_Badge_Warning" />
+      <component type='badge' config='{"label":"Danger","variant":"danger"}' data-name="DS_Badge_Danger" />
+      <component type='badge' config='{"label":"Info","variant":"info"}' data-name="DS_Badge_Info" />
+      <component type='avatar' config='{"initial":"U"}' data-name="DS_Avatar" />
+      <component type='tag' config='{"label":"Tag","closable":true}' data-name="DS_Tag" />
+      <component type='progress' config='{"percent":60,"showLabel":true}' class="w-[180px]" data-name="DS_Progress" />
+      <component type='spinner' config='{"showTrack":true}' data-name="DS_Spinner" />
+      <component type='skeleton' config='{"variant":"text","rows":1}' class="w-[200px] h-[20px]" data-name="DS_Skeleton" />
+    </section>
+
+    <section class="flex flex-row gap-[16px] items-center" data-name="Row-Divider-Card">
+      <component type='divider' config='{"direction":"horizontal"}' class="w-[200px]" data-name="DS_Divider" />
+      <component type='card' config='{"title":"Card Title","content":"Card content description here"}' class="w-[240px]" data-name="DS_Card" />
+      <component type='toast' config='{"message":"Operation successful","type":"success"}' data-name="DS_Toast" />
+    </section>
+  </section>
+
+  <!-- ═══ 组3：导航与布局 ═══ -->
+  <section class="flex flex-col gap-[16px]" data-name="Group-Navigation">
+    <p class="text-[16px] font-[700] text-[#111827] leading-[24px]" data-name="GroupLabel">导航与布局</p>
+
+    <component type='tabs' config='{"items":["Tab 1","Tab 2","Tab 3"],"activeIndex":0,"variant":"underline"}' class="w-[400px]" data-name="DS_Tabs" />
+    <component type='breadcrumb' config='{"items":["Home","Category","Page"],"separator":"/"}' class="w-[400px]" data-name="DS_Breadcrumb" />
+    <component type='steps' config='{"items":["Step 1","Step 2","Step 3"],"current":1}' class="w-[400px]" data-name="DS_Steps" />
+
+    <section class="flex flex-row gap-[24px] items-start" data-name="Row-Menu-Pagination">
+      <component type='menu' config='{"items":[{"label":"Dashboard"},{"label":"Settings"},{"type":"divider"},{"label":"Logout"}]}' class="w-[180px]" data-name="DS_Menu" />
+      <component type='pagination' config='{"current":1,"total":50,"pageSize":10}' data-name="DS_Pagination" />
+    </section>
+
+    <component type='list' config='{"items":[{"label":"Item 1"},{"label":"Item 2"},{"label":"Item 3"}]}' class="w-[400px]" data-name="DS_List" />
+  </section>
+
+  <!-- ═══ 组4：反馈与弹层 ═══ -->
+  <section class="flex flex-col gap-[16px]" data-name="Group-Feedback">
+    <p class="text-[16px] font-[700] text-[#111827] leading-[24px]" data-name="GroupLabel">反馈与弹层</p>
+
+    <section class="flex flex-row gap-[16px] items-start" data-name="Row-Tooltip-Alert">
+      <component type='tooltip' config='{"label":"Tooltip text"}' data-name="DS_Tooltip" />
+      <component type='alert' config='{"title":"Alert","content":"This is an informational message","variant":"info"}' class="w-[400px]" data-name="DS_Alert_Info" />
+    </section>
+
+    <section class="flex flex-row gap-[16px] items-start" data-name="Row-Modal-Accordion">
+      <component type='modal' config='{"title":"Modal Title","content":"Modal content here...","confirmLabel":"Confirm","showCancel":true}' class="w-[400px]" data-name="DS_Modal" />
+      <component type='accordion' config='{"items":[{"label":"Panel 1","content":"Content 1"},{"label":"Panel 2","content":"Content 2"}],"bordered":true}' class="w-[400px]" data-name="DS_Accordion" />
+    </section>
+  </section>
+
+</section>

@@ -1,0 +1,52 @@
+{
+  "name": "@uxship/mcp-server",
+  "version": "3.0.0",
+  "description": "uxship MCP server — render AI-generated design into MasterGo / Penpot canvases, and read canvas design back to code",
+  "main": "./dist/index.js",
+  "type": "module",
+  "bin": {
+    "uxship-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "scripts/",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc && node scripts/copy-assets.mjs",
+    "start": "node dist/index.js",
+    "convert-to-code": "node scripts/convert-to-code.mjs",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e:penpot": "node scripts/e2e-penpot-router.mjs",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "uxship",
+    "mcp",
+    "design",
+    "automation"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "axios": "^1.18.1",
+    "echarts": "^6.1.0",
+    "ws": "^8.16.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/ws": "^8.5.10",
+    "@typescript-eslint/eslint-plugin": "^8.63.0",
+    "@typescript-eslint/parser": "^8.63.0",
+    "eslint": "^10.7.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.10"
+  }
+}

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>uxship for Penpot — 客户端渲染 harness</title>
+    <script>
+      // harness 专用兜底：chrome-headless-shell 没有合成器，requestAnimationFrame 永不触发，
+      // 而渲染引擎在实测像素前会 await 一次 rAF → harness 会永远卡住。
+      // 用 setTimeout 顶掉它：布局本身是同步计算的（getBoundingClientRect 会强制 layout），
+      // 所以这不影响测量结果，只是让无头环境能跑完。
+      window.requestAnimationFrame = function (cb) {
+        return window.setTimeout(function () {
+          cb(performance.now())
+        }, 16)
+      }
+      window.cancelAnimationFrame = function (id) {
+        window.clearTimeout(id)
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <p style="font: 13px/1.5 -apple-system, sans-serif; color: #6b7280">
+      harness 运行中…… 结果见 <code>window.__harness</code>
+    </p>
+    <script type="module" src="./harness.ts"></script>
+  </body>
+</html>

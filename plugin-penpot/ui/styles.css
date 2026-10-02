@@ -1,0 +1,1187 @@
+/**
+ * 设计令牌（UI 侧）
+ *
+ * 与 `skills/design/rules/14-design-system.md` 同一口径：颜色按**角色**命名
+ * （bg / surface / text / accent），而不是按色值命名。UI 用 CSS 自定义属性承载，
+ * 后续要接设计令牌导出时只需替换这一层。
+ *
+ * 对比度按 WCAG AA 校验（正文 ≥ 4.5:1）：
+ *   --text  #E5E7EB on --bg #111827  ≈ 13.6:1 ✅
+ *   --muted #9CA3AF on --bg #111827  ≈  6.4:1 ✅
+ *   --accent-text #052E22 on --accent #31EFB8 ≈ 12.1:1 ✅
+ */
+:root {
+  --bg: #111827;
+  --surface: #1F2937;
+  --surface-hover: #273449;
+  --border: #374151;
+  /* 进度条轨道：原先沿用卡片描边色 #374151（1.42:1），空的那一半读起来像"一条边框"
+     而不是"轨道"，暗环境里几乎隐形。提到 #6B7280（3.04:1）后它才是个可辨的轨道，
+     也和描边色分开了角色。 */
+  --track: #6B7280;
+  /* 运行中的进度填充。三个方向都要过 3:1，唯一同时成立的组合是轨道 #6B7280 + 浅靛蓝：
+       填充对卡片 9.84:1 / 填充对轨道 3.24:1 / 轨道对卡片 3.04:1
+     附带好处：它和成功色 9.90:1 同量级 —— 之前运行 4.92 对成功 9.90，"完成"比"进行中"
+     响一倍（复审实测），权重是反的。代价是填充比原来的品牌靛蓝"浅"，这是为了同时满足
+     三个对比度约束必须付的。 */
+  --progress: #C7D2FE;
+  /* pending 圆点 / 需要看得见的小图形 */
+  --dot: #6B7280;
+  --text: #E5E7EB;
+  --muted: #9CA3AF;
+  --accent: #31EFB8;
+  --accent-text: #052E22;
+  --warning: #F59E0B;
+  --danger: #F87171;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+
+  --line-tight: 16px;
+  --line-normal: 20px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ══ 滚动条 ══
+   默认滚动条在深色面板里又粗又亮（宿主/系统主题的配色），紧凑态那种小窗口下尤其碍眼。
+   做法与 plugin-mastergo 一致：8px、滑块带一圈**轨道色描边**（视觉上像悬浮胶囊），
+   再补标准属性（scrollbar-width/color）给非 WebKit 内核。 */
+:root {
+  --scrollbar-track: var(--bg);
+  --scrollbar-thumb: #475569;
+  --scrollbar-thumb-hover: #64748B;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 4px; }
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+  /* 2px 轨道色描边 = plugin-mastergo 那招：滑块显得细一点、与轨道之间留白 */
+  border: 2px solid var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+::-webkit-scrollbar-corner { background: var(--scrollbar-track); }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  /* 关键：页面本身**永不滚动**。
+     之前 body 会跟着内容长高 → 在插件 iframe 里出现一条"宿主默认滚动条"（又粗又亮，
+     且在紧凑态那种小窗口里格外碍眼）。参考 plugin-mastergo 的做法：整体 height:100% +
+     overflow:hidden，滚动只发生在内部容器（这里是 #app）。 */
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
+  font-size: var(--text-md);
+  line-height: var(--line-normal);
+}
+
+#app {
+  /* 唯一的滚动容器：撑满窗口，内容超出时在**这里**滚（滚动条样式见下方 --scrollbar-*） */
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 100vh;
+}
+
+/* ── 区块 ── */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.panel__head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.panel__title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* ── 行 / 字段 ── */
+
+.row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.field {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.field__label {
+  color: var(--muted);
+  flex: 0 0 auto;
+  min-width: 56px;
+}
+
+.field__value {
+  flex: 1 1 auto;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 状态点 ── */
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--muted);
+}
+
+.dot--connected {
+  background: var(--accent);
+}
+
+.dot--connecting,
+.dot--reconnecting {
+  background: var(--warning);
+}
+
+.dot--error {
+  background: var(--danger);
+}
+
+/* ── 按钮 ── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  height: 30px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-hover);
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--muted);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.btn--ghost {
+  background: transparent;
+}
+
+/* ── 输入 ── */
+
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  padding: 0 var(--space-2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+textarea.input {
+  /* 用 `rows` 而不是算高度：`calc` 那次没算对（复审实测仍有半截行）。
+     rows 由浏览器按行高整数倍给高度，不会出现"切到字腰"的那一行；
+     同时关掉原生 resize 柄（深色框右下角那道斜纹与面板风格不搭）。 */
+  line-height: 18px;
+  height: auto;
+  resize: none;
+  padding: var(--space-2);
+  overflow-y: auto;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-xs);
+  color: var(--accent);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ── 徽标 ── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  background: var(--surface-hover);
+  color: var(--muted);
+}
+
+.badge--ok {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.badge--warn {
+  background: var(--warning);
+  color: #2A1A00;
+}
+
+.badge--error {
+  background: var(--danger);
+  color: #3B0A0A;
+}
+
+/* 会话代号（对齐 plugin-mastergo 的 .codename-badge）：彩色胶囊，点它就地编辑 */
+.btn-codename {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btn-codename:hover {
+  filter: brightness(1.12);
+}
+
+.input--code {
+  width: 92px;
+  height: 20px;
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+}
+
+/* ── 列表 / 日志 ── */
+
+.scroll {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-xs);
+  line-height: var(--line-tight);
+  word-break: break-all;
+}
+
+.log-line {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid transparent;
+}
+
+.log-line__time {
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.log-line--error .log-line__text {
+  color: var(--danger);
+}
+
+.log-line--success .log-line__text {
+  color: var(--accent);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: var(--line-tight);
+  color: var(--muted);
+}
+
+.empty {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+/* 后端不匹配 / 未上报后端的重声告警 */
+.warn {
+  margin: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: #3B0A0A;
+  border: 1px solid var(--danger);
+  color: #FECACA;
+  font-size: var(--text-xs);
+  line-height: var(--line-tight);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   任务步骤卡片（对齐 plugin-mastergo 的 TaskProgress 体验）
+
+   服务端把 AI 的工作拆成步骤下发（task/plan → task/step → task/complete），
+   这里只负责"看得见"：进度条、步骤状态、运行中的动效。
+
+   动效刻意克制：这个面板会在 AI 连续工作时一直亮着，闪烁太多反而干扰。
+   所以只有三处动效 —— 卡片进出场、运行中步骤的呼吸、进度条过渡。
+   ══════════════════════════════════════════════════════════════════════ */
+
+.task {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow: hidden;
+}
+
+.task--failed {
+  border-color: var(--danger);
+}
+
+/* 完成态**不整卡压暗**：0.9 的整卡透明度会把成功色也一起压灰，读起来像"离线"。
+   收起的倒计时用 header 的进度条颜色 + 计数表达就够。 */
+.task--done {
+  opacity: 1;
+}
+
+.task__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* 右侧留出行内一样的 8px，让 header 的数字与步骤行的文字落在同一根右对齐轴上 */
+  padding-right: var(--space-2);
+}
+
+/* 左侧那颗状态点：运行时呼吸，结束后静默 */
+.task__pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+  /* 与 12px 的步骤图标槽同轴（7/2 + 2.5 = 6 = 12/2） */
+  margin: 0 2.5px;
+}
+
+/* 运行 = 靛蓝（与进度条同色）。原先用 --accent 青绿，于是"青绿"在同一张卡里
+   既表示"正在跑"又表示"已完成"（复审实测到的语义翻转），完成态的圆点反而变成灰色。 */
+.task__pulse--run {
+  background: var(--progress);
+  animation: task-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes task-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(199, 210, 254, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(199, 210, 254, 0); }
+}
+
+/* 完成后圆点保持成功色（原来是灰的 —— "任务完成"四个字与满格青绿条都在说成功，
+   唯独这个点像睡着了） */
+.task--done .task__pulse { background: var(--accent); }
+.task--failed .task__pulse { background: var(--danger); }
+
+.task__summary {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task__spacer {
+  flex: 1;
+}
+
+.task__elapsed,
+.task__count {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.task__close {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-hover);
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.task__close:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.task__track {
+  height: 5px;
+  border-radius: 3px;
+  /* 轨道原本用 --border(#374151)，对卡片底只有 1.42:1 —— 3px 高的条几乎"没有边"。
+     提到 --track(#475569 ≈ 3.1:1) 之后才看得出进度条到哪了。 */
+  background: var(--track);
+  overflow: hidden;
+}
+
+.task__fill {
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: var(--progress);
+  /* 进度变化是"任务在推进"的主要信号，过渡要够顺 */
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s;
+}
+
+/* 成功必须是**成功色**：原先填充停在靛蓝、只有标题变白，完成态读起来像"还在跑" */
+.task__fill--ok { background: var(--accent); }
+.task__fill--bad { background: var(--danger); }
+
+.task__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  /* 步骤多时不把面板撑爆 */
+  max-height: 168px;
+  overflow-y: auto;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  line-height: var(--line-tight);
+  color: var(--muted);
+  transition: color 0.2s;
+  /* 逐条入场：没有这条时，running 步骤会在替换色的一瞬间"跳"出来 */
+  animation: step-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--step-index, 0) * 26ms);
+}
+
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: none; }
+}
+
+.step--running { color: var(--progress); }
+.step--completed { color: var(--text); }
+.step--failed { color: var(--danger); }
+
+.step__mark {
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step__mark svg {
+  width: 12px;
+  height: 12px;
+}
+
+.step__spin {
+  animation: task-spin 0.8s linear infinite;
+}
+
+@keyframes task-spin {
+  to { transform: rotate(360deg); }
+}
+
+.step__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--dot);
+}
+
+.step__label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.step__message {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 卡片进出场（成功自动收起时也要有过渡，否则会"啪"地消失） */
+.task-card-enter-active,
+.task-card-leave-active {
+  transition: opacity 0.24s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.task-card-enter-from,
+.task-card-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* 「处理中」指示：一次工具调用在途时亮起（与任务卡片的呼吸区分开 —— 它更短促） */
+.badge--busy {
+  background: var(--surface-hover);
+  border-color: var(--border);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.badge__spinner {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  border-top-color: var(--accent);
+  animation: task-spin 0.7s linear infinite;
+}
+
+/* ══ 选中对象卡片 ══
+   只读展示：类型 + 名称（id 太长，名称缺失时才退回显示）。
+   行入场用极轻的位移，避免"选区一变整块跳一下"。 */
+.sel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 132px;
+  overflow-y: auto;
+}
+
+.sel-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-hover);
+  font-size: var(--text-xs);
+  line-height: var(--line-tight);
+  animation: sel-row-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(var(--row-index, 0) * 18ms);
+}
+
+@keyframes sel-row-in {
+  from { opacity: 0; transform: translateX(-3px); }
+  to { opacity: 1; transform: none; }
+}
+
+.sel-row__type {
+  /* 定宽（不是 min-width）：类型词长度不一（board / text / path），
+     不定宽时名称列会随类型字数左右跳，三行读不成列 */
+  width: 44px;
+  flex-shrink: 0;
+  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sel-row__name {
+  flex: 1;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sel-row--more {
+  color: var(--muted);
+  background: transparent;
+  justify-content: center;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   减少动效偏好
+
+   两个理由，缺一不可：
+     1. 无障碍：前庭功能敏感的用户会因为持续旋转/呼吸而难受；
+     2. 可测：默认动画下截图很容易抓到"中间帧"（实测过：完成态被截在 72% 进度、
+        步骤行只有 0.34 不透明度），关掉动画后 harness 拿到的才是稳定态。
+   ══════════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .task__pulse--run,
+  .step__spin,
+  .badge__spinner,
+  .orb,
+  .orb__morph,
+  .orb__core,
+  .orb__ring,
+  .orb__glow,
+  .orb__dot,
+  .orb__blob,
+  .orb--flash {
+    animation: none;
+  }
+
+  .task__fill,
+  .step,
+  .sel-row,
+  .task-card-enter-active,
+  .task-card-leave-active,
+  .btn,
+  .task__close {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   常驻状态球（移植 plugin-mastergo 的 CompactBall 视觉语言）
+
+   Siri 式形变光斑（4 片 + 珍珠核心）→ 慢速自转 + 各自形变/漂移；
+   在忙时叠一圈旋转光轨（转速与色相随任务进度）；完成/失败各一次性光晕。
+   配色跟随本面板语义：已连接=成功绿、在忙=靛蓝(--progress)、失败=红、连接中=琥珀。
+   ══════════════════════════════════════════════════════════════════════ */
+
+.orb {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+  border-radius: 50%;
+  background: #0c0c1d;
+  cursor: pointer;
+  z-index: 1;
+  /* 浮动呼吸：让它在静止时也是"活的"（这是原设计的核心手感） */
+  animation: orb-float 5s ease-in-out infinite;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.6s ease-out;
+}
+
+.orb:hover {
+  transform: scale(1.08) rotate(2deg);
+  filter: brightness(1.12);
+}
+
+.orb:active {
+  transform: scale(0.95);
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.orb--busy {
+  animation: orb-float 2.8s ease-in-out infinite;
+}
+
+@keyframes orb-float {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-3px); }
+  60% { transform: translateY(2px); }
+  85% { transform: translateY(-1px); }
+}
+
+/* ── 光斑层：inset 为负，让有机轮廓溢出球体（原设计靠这里做出"Siri 感"）── */
+.orb__morph {
+  position: absolute;
+  inset: -5px;
+  z-index: 0;
+  animation: orb-morph-rotate 20s linear infinite;
+}
+
+@keyframes orb-morph-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.orb__blob-wrap {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.orb__blob-wrap--1 { inset: -2px; transform: translate(-3px, -2px); }
+.orb__blob-wrap--2 { inset: -10px; transform: translate(3px, 4px); }
+.orb__blob-wrap--3 { inset: -5px; transform: translate(4px, -3px); }
+.orb__blob-wrap--4 { inset: -13px; transform: translate(-2px, 5px); }
+
+.orb__blob {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  opacity: 0.82;
+  mix-blend-mode: screen;
+  filter: blur(0.5px);
+  will-change: border-radius, transform;
+}
+
+/* 珍珠核心 */
+.orb__core {
+  position: absolute;
+  inset: 26%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 40% 36%,
+    rgba(235, 245, 255, 0.94) 0%,
+    rgba(190, 215, 255, 0.3) 26%,
+    rgba(150, 185, 255, 0.04) 58%,
+    transparent 100%
+  );
+  mix-blend-mode: plus-lighter;
+  filter: blur(1px);
+  opacity: 0.72;
+  z-index: 2;
+  animation: orb-core-pulse 3.5s ease-in-out infinite;
+}
+
+@keyframes orb-core-pulse {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.72; }
+  25% { transform: scale(1.15) rotate(90deg); opacity: 0.45; }
+  50% { transform: scale(1.22) rotate(180deg); opacity: 0.28; }
+  75% { transform: scale(1.08) rotate(270deg); opacity: 0.55; }
+}
+
+/* ── 光斑形变（4 套 border-radius 关键帧，互相错开周期才不乱）── */
+@keyframes orb-morph-1 {
+  0%, 100% { border-radius: 60% 40% 70% 30% / 30% 60% 40% 70%; }
+  25% { border-radius: 30% 70% 40% 60% / 70% 30% 60% 40%; }
+  50% { border-radius: 50% 50% 30% 70% / 60% 40% 50% 50%; }
+  75% { border-radius: 40% 60% 60% 40% / 40% 70% 30% 60%; }
+}
+@keyframes orb-morph-2 {
+  0%, 100% { border-radius: 70% 30% 40% 60% / 50% 70% 30% 50%; }
+  25% { border-radius: 40% 60% 70% 30% / 30% 50% 70% 50%; }
+  50% { border-radius: 60% 40% 50% 50% / 70% 30% 40% 60%; }
+  75% { border-radius: 30% 70% 50% 50% / 50% 40% 60% 40%; }
+}
+@keyframes orb-morph-3 {
+  0%, 100% { border-radius: 50% 50% 60% 40% / 70% 30% 60% 40%; }
+  25% { border-radius: 70% 30% 30% 70% / 40% 60% 40% 60%; }
+  50% { border-radius: 30% 70% 60% 40% / 50% 70% 30% 50%; }
+  75% { border-radius: 55% 45% 40% 60% / 35% 55% 70% 30%; }
+}
+@keyframes orb-morph-4 {
+  0%, 100% { border-radius: 40% 60% 30% 70% / 60% 40% 70% 30%; }
+  25% { border-radius: 65% 35% 50% 50% / 30% 70% 40% 60%; }
+  50% { border-radius: 35% 65% 60% 40% / 60% 30% 70% 40%; }
+  75% { border-radius: 50% 50% 35% 65% / 45% 55% 30% 70%; }
+}
+@keyframes orb-drift-1 {
+  0%, 100% { transform: rotate(0deg) translate(0, 0) scale(1); }
+  25% { transform: rotate(12deg) translate(4px, -3px) scale(1.08); }
+  50% { transform: rotate(-8deg) translate(-3px, 4px) scale(0.94); }
+  75% { transform: rotate(6deg) translate(2px, -4px) scale(1.04); }
+}
+@keyframes orb-drift-2 {
+  0%, 100% { transform: rotate(0deg) translate(0, 0) scale(1); }
+  25% { transform: rotate(-14deg) translate(-3px, -4px) scale(0.92); }
+  50% { transform: rotate(9deg) translate(4px, 2px) scale(1.06); }
+  75% { transform: rotate(-5deg) translate(-2px, 3px) scale(0.96); }
+}
+@keyframes orb-drift-3 {
+  0%, 100% { transform: rotate(0deg) translate(0, 0) scale(1); }
+  25% { transform: rotate(16deg) translate(-4px, 3px) scale(1.05); }
+  50% { transform: rotate(-11deg) translate(3px, -3px) scale(0.93); }
+  75% { transform: rotate(8deg) translate(-1px, -3px) scale(1.03); }
+}
+@keyframes orb-drift-4 {
+  0%, 100% { transform: rotate(0deg) translate(0, 0) scale(1); }
+  25% { transform: rotate(-17deg) translate(3px, 4px) scale(0.9); }
+  50% { transform: rotate(11deg) translate(-4px, -3px) scale(1.07); }
+  75% { transform: rotate(-7deg) translate(2px, 1px) scale(0.95); }
+}
+
+/* ── 各状态的配色（未连接偏冷灰、连接中偏暖、在忙高饱和、失败偏红）── */
+.orb--idle .orb__blob--1 { background: conic-gradient(from 45deg at 35% 25%, #64748B 0%, #475569 22%, #94A3B8 48%, #334155 74%, #64748B 100%); animation: orb-morph-1 9s ease-in-out infinite, orb-drift-1 12s ease-in-out infinite; }
+.orb--idle .orb__blob--2 { background: conic-gradient(from 135deg at 65% 55%, #7C8BA1 0%, #5B6B80 22%, #A0AEC0 48%, #4A5568 74%, #7C8BA1 100%); animation: orb-morph-2 11s ease-in-out infinite, orb-drift-2 13s ease-in-out infinite; }
+.orb--idle .orb__blob--3 { background: conic-gradient(from 225deg at 48% 40%, #94A3B8 0%, #64748B 22%, #7C8BA1 48%, #475569 74%, #94A3B8 100%); animation: orb-morph-3 10s ease-in-out infinite, orb-drift-3 14s ease-in-out infinite; }
+.orb--idle .orb__blob--4 { background: conic-gradient(from 315deg at 55% 30%, #A0AEC0 0%, #7C8BA1 22%, #64748B 48%, #5B6B80 74%, #A0AEC0 100%); animation: orb-morph-4 12s ease-in-out infinite, orb-drift-4 15s ease-in-out infinite; }
+
+.orb--connecting .orb__blob--1 { background: conic-gradient(from 45deg at 35% 25%, #F59E0B 0%, #FBBF24 22%, #FB923C 48%, #D97706 74%, #F59E0B 100%); animation: orb-morph-1 6s ease-in-out infinite, orb-drift-1 8s ease-in-out infinite; }
+.orb--connecting .orb__blob--2 { background: conic-gradient(from 135deg at 65% 55%, #FCD34D 0%, #F59E0B 22%, #FDE68A 48%, #B45309 74%, #FCD34D 100%); animation: orb-morph-2 7s ease-in-out infinite, orb-drift-2 9s ease-in-out infinite; }
+.orb--connecting .orb__blob--3 { background: conic-gradient(from 225deg at 48% 40%, #FB923C 0%, #FBBF24 22%, #FCD34D 48%, #EA580C 74%, #FB923C 100%); animation: orb-morph-3 6.5s ease-in-out infinite, orb-drift-3 9.5s ease-in-out infinite; }
+.orb--connecting .orb__blob--4 { background: conic-gradient(from 315deg at 55% 30%, #FDE68A 0%, #FB923C 22%, #F59E0B 48%, #FCD34D 74%, #FDE68A 100%); animation: orb-morph-4 8s ease-in-out infinite, orb-drift-4 10s ease-in-out infinite; }
+
+.orb--connected .orb__blob--1 { background: conic-gradient(from 45deg at 35% 25%, #31EFB8 0%, #22D3EE 22%, #5EEAD4 48%, #0EA5E9 74%, #31EFB8 100%); animation: orb-morph-1 7.5s ease-in-out infinite, orb-drift-1 10s ease-in-out infinite; }
+.orb--connected .orb__blob--2 { background: conic-gradient(from 135deg at 65% 55%, #6EE7F9 0%, #34D399 22%, #A7F3D0 48%, #0D9488 74%, #6EE7F9 100%); animation: orb-morph-2 9.5s ease-in-out infinite, orb-drift-2 12s ease-in-out infinite; }
+.orb--connected .orb__blob--3 { background: conic-gradient(from 225deg at 48% 40%, #5EEAD4 0%, #31EFB8 22%, #22D3EE 48%, #2DD4BF 74%, #5EEAD4 100%); animation: orb-morph-3 8.5s ease-in-out infinite, orb-drift-3 11s ease-in-out infinite; }
+.orb--connected .orb__blob--4 { background: conic-gradient(from 315deg at 55% 30%, #A7F3D0 0%, #22D3EE 22%, #34D399 48%, #6EE7F9 74%, #A7F3D0 100%); animation: orb-morph-4 11s ease-in-out infinite, orb-drift-4 13s ease-in-out infinite; }
+
+/* 在忙：高频跃动（周期减半）—— 这是"它在干活"的主要体感来源 */
+.orb--busy .orb__blob--1 { background: conic-gradient(from 0deg at 35% 25%, #6366F1 0%, #818CF8 22%, #22D3EE 48%, #4F46E5 74%, #6366F1 100%); animation: orb-morph-1 3.5s ease-in-out infinite, orb-drift-1 5.5s ease-in-out infinite; }
+.orb--busy .orb__blob--2 { background: conic-gradient(from 90deg at 65% 55%, #8B5CF6 0%, #D946EF 22%, #A78BFA 48%, #7C3AED 74%, #8B5CF6 100%); animation: orb-morph-2 4.5s ease-in-out infinite, orb-drift-2 6.5s ease-in-out infinite; }
+.orb--busy .orb__blob--3 { background: conic-gradient(from 180deg at 48% 40%, #22D3EE 0%, #38BDF8 22%, #818CF8 48%, #0891B2 74%, #22D3EE 100%); animation: orb-morph-3 4s ease-in-out infinite, orb-drift-3 6s ease-in-out infinite; }
+.orb--busy .orb__blob--4 { background: conic-gradient(from 270deg at 55% 30%, #C7D2FE 0%, #A78BFA 22%, #38BDF8 48%, #6366F1 74%, #C7D2FE 100%); animation: orb-morph-4 5.5s ease-in-out infinite, orb-drift-4 7s ease-in-out infinite; }
+
+.orb--done .orb__blob--1 { background: conic-gradient(from 45deg at 35% 25%, #31EFB8 0%, #34D399 22%, #A7F3D0 48%, #10B981 74%, #31EFB8 100%); animation: orb-morph-1 9s ease-in-out infinite, orb-drift-1 11s ease-in-out infinite; }
+.orb--done .orb__blob--2 { background: conic-gradient(from 135deg at 65% 55%, #6EE7B7 0%, #31EFB8 22%, #BBF7D0 48%, #059669 74%, #6EE7B7 100%); animation: orb-morph-2 10s ease-in-out infinite, orb-drift-2 12s ease-in-out infinite; }
+.orb--done .orb__blob--3 { background: conic-gradient(from 225deg at 48% 40%, #A7F3D0 0%, #34D399 22%, #6EE7B7 48%, #10B981 74%, #A7F3D0 100%); animation: orb-morph-3 9.5s ease-in-out infinite, orb-drift-3 13s ease-in-out infinite; }
+.orb--done .orb__blob--4 { background: conic-gradient(from 315deg at 55% 30%, #BBF7D0 0%, #6EE7B7 22%, #31EFB8 48%, #34D399 74%, #BBF7D0 100%); animation: orb-morph-4 11s ease-in-out infinite, orb-drift-4 14s ease-in-out infinite; }
+
+.orb--failed .orb__blob--1 { background: conic-gradient(from 45deg at 35% 25%, #F87171 0%, #FB7185 22%, #FCA5A5 48%, #DC2626 74%, #F87171 100%); animation: orb-morph-1 5s ease-in-out infinite, orb-drift-1 6s ease-in-out infinite; }
+.orb--failed .orb__blob--2 { background: conic-gradient(from 135deg at 65% 55%, #FCA5A5 0%, #F87171 22%, #FECDD3 48%, #B91C1C 74%, #FCA5A5 100%); animation: orb-morph-2 6s ease-in-out infinite, orb-drift-2 7s ease-in-out infinite; }
+.orb--failed .orb__blob--3 { background: conic-gradient(from 225deg at 48% 40%, #FB7185 0%, #FCA5A5 22%, #F87171 48%, #E11D48 74%, #FB7185 100%); animation: orb-morph-3 5.5s ease-in-out infinite, orb-drift-3 6.5s ease-in-out infinite; }
+.orb--failed .orb__blob--4 { background: conic-gradient(from 315deg at 55% 30%, #FECDD3 0%, #FB7185 22%, #F87171 48%, #EF4444 74%, #FECDD3 100%); animation: orb-morph-4 7s ease-in-out infinite, orb-drift-4 8s ease-in-out infinite; }
+
+/* ── 旋转光轨（在忙时）── */
+.orb__ring {
+  position: absolute;
+  inset: -9px;
+  border-radius: 9999px;
+  border: 2.5px solid transparent;
+  border-top-color: rgba(99, 102, 241, 0.55);
+  border-right-color: rgba(139, 92, 246, 0.35);
+  border-bottom-color: rgba(34, 211, 238, 0.18);
+  border-left-color: rgba(99, 102, 241, 0.35);
+  pointer-events: none;
+  z-index: 2;
+  filter: blur(1.5px);
+  animation: orb-ring-spin var(--ring-speed, 1.2s) linear infinite, orb-ring-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes orb-ring-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes orb-ring-pulse {
+  0%, 100% { opacity: 1; filter: blur(1.5px); }
+  50% { opacity: 0.45; filter: blur(2.5px); }
+}
+
+/* 光轨色相阶段：早=靛蓝、中=紫、晚=青（越到后面越"暖"） */
+.orb-ring--early { border-top-color: rgba(99, 102, 241, 0.6); border-right-color: rgba(129, 140, 248, 0.35); border-bottom-color: rgba(199, 210, 254, 0.15); border-left-color: rgba(99, 102, 241, 0.4); }
+.orb-ring--mid { border-top-color: rgba(139, 92, 246, 0.6); border-right-color: rgba(167, 139, 250, 0.35); border-bottom-color: rgba(196, 181, 253, 0.15); border-left-color: rgba(139, 92, 246, 0.4); }
+.orb-ring--late { border-top-color: rgba(34, 211, 238, 0.65); border-right-color: rgba(45, 212, 191, 0.35); border-bottom-color: rgba(94, 234, 212, 0.15); border-left-color: rgba(34, 211, 238, 0.4); }
+
+/* ── 一次性光晕（完成 / 失败）── */
+.orb__glow {
+  position: absolute;
+  inset: -16px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  animation: orb-glow-out 2s ease-out forwards;
+}
+
+.orb__glow--ok { background: radial-gradient(circle, rgba(49, 239, 184, 0.38) 0%, rgba(49, 239, 184, 0.08) 50%, transparent 70%); }
+.orb__glow--bad { background: radial-gradient(circle, rgba(248, 113, 113, 0.38) 0%, rgba(248, 113, 113, 0.08) 50%, transparent 70%); }
+
+@keyframes orb-glow-out {
+  0% { opacity: 1; transform: scale(0.6); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+
+/* ── 球心内容 ── */
+.orb__content {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+  color: #F8FAFC;
+}
+
+.orb__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.orb-dot--connected { background: var(--accent); }
+.orb-dot--busy { background: var(--progress); animation: orb-dot-beat 0.7s ease-in-out infinite; }
+.orb-dot--done { background: var(--accent); }
+.orb-dot--failed { background: var(--danger); animation: orb-dot-blink 0.5s step-end infinite; }
+.orb-dot--connecting { background: var(--warning); animation: orb-dot-beat 1s ease-in-out infinite; }
+.orb-dot--idle { background: var(--muted); opacity: 0.65; }
+
+@keyframes orb-dot-beat {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes orb-dot-blink {
+  50% { opacity: 0.2; }
+}
+
+.orb__number {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+}
+
+.orb__label {
+  font-size: 9px;
+  line-height: 1;
+  color: rgba(226, 232, 240, 0.86);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+}
+
+.orb__dots {
+  display: flex;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.orb__step {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.45);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.orb__step--done { background: var(--accent); }
+.orb__step--active { background: var(--progress); transform: scale(1.35); }
+.orb__step--failed { background: var(--danger); transform: scale(1.35); }
+
+/* 步骤切换闪动（原设计的 step-flash） */
+.orb--flash {
+  animation: orb-step-flash 0.5s ease-out !important;
+}
+
+@keyframes orb-step-flash {
+  0% { filter: brightness(1.6) saturate(1.4); transform: scale(1.08); }
+  100% { filter: brightness(1) saturate(1); transform: scale(1); }
+}
+
+/* ── 悬停浮层 ── */
+.orb__tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: rgba(17, 24, 39, 0.96);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--text-xs);
+  line-height: var(--line-tight);
+  white-space: nowrap;
+  text-align: left;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.orb__tip-line { display: block; }
+
+/* 面板头部的动作组（如日志的 只看问题 / 复制 / 清空 / 关于） */
+.panel__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 按钮的「已开启」态（调试开关） */
+.btn--on {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   紧凑态：整个插件窗口就是一颗球
+
+   靠 `penpot.ui.resize(132,132)` 把窗口缩到只装得下球。官方对窗口尺寸有 min/max
+   限制（未给出具体数值），所以这里**不假设**窗口一定很小：用 flex 居中 + 允许溢出隐藏，
+   被宿主夹成大窗口时球依然居中，不歪在角落。
+   ══════════════════════════════════════════════════════════════════════ */
+/* 紧凑态容器：铺满窗口并居中。
+   用 position:fixed + inset:0（plugin-mastergo 同款）而不是 min-height:100vh ——
+   后者在"窗口高度刚好等于球"时会把内容顶出去，多出一条滚动条。 */
+.app-compact {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* 紧凑态把球放大一档（此时它是唯一内容，太小反而难点） */
+.app-compact .orb {
+  width: 84px;
+  height: 84px;
+}
+
+/* 会话代号胶囊：固定在窗口左上角（与 plugin-mastergo 的 .ball-codename 同做法）——
+   紧凑态实时显示“我在哪个 session”，不改名也能一眼区分多个 Penpot 文档 */
+.ball-codename {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  margin: 0;
+  padding: 4px 12px 3px 10px;
+  border-radius: 0 0 10px 0;
+  background: var(--surface-hover);
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
+
+.app-compact .orb__number { font-size: 20px; }
+.app-compact .orb__label { font-size: 10px; }
+
+/* 紧凑态里浮层改为向下弹（窗口上方没有空间） */
+.app-compact .orb__tip {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
+/* 底部的说明条（如「宿主把窗口尺寸夹到了…」）—— 只在展开态显示，避免占满紧凑窗口 */
+.orb-notes {
+  margin: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--warning);
+  color: var(--text);
+  font-size: var(--text-xs);
+  line-height: var(--line-tight);
+}
+
+/* 紧凑态里的说明条：贴在球下方，窄窗口下自动换行（被宿主夹大时才出现） */
+.orb-notes--compact {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  bottom: var(--space-2);
+  text-align: center;
+}
+
+.app-compact {
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+/* 紧凑态不需要滚动条（内容就是一颗球） */
+#app:has(.app-compact) {
+  overflow: hidden;
+  padding: 0;
+}
+
+/* 顶栏版本号 = 调试面板开关（按钮但看起来像文字，不诱使人点） */
+.orb-bar__ver {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.orb-bar__ver:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}

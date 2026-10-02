@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "sourceMap": false,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowJs": false,
+    "strict": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "removeComments": false,
+    "jsx": "preserve",
+    "importHelpers": true,
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "types": [],
+    "paths": {
+      "@lib/*": ["./lib/*"],
+      "@ui/*": ["./ui/*"],
+      "@messages/*": ["./messages/*"]
+    }
+  },
+  "include": [
+    "./ui/**/*.ts",
+    "./ui/**/*.vue",
+    "./typings/*.d.ts",
+    "./lib/**/*.ts",
+    "./messages/**/*.ts",
+    "./tests/**/*.ts",
+    "./vite.config.ts",
+    "./vitest.config.mts"
+  ]
+}

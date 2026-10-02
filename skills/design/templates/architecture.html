@@ -1,0 +1,269 @@
+<!--
+==================================================================
+  MasterGo 架构图模板
+  用途：AI 将代码库分析结果渲染为分层架构图
+  包含：系统边界、分层区、模块框、连线、图例
+  使用方法：
+    1. AI 分析代码库识别模块/服务的层级归属
+    2. 规划布局：每层使用 flex-col gap-[Npx] 或绝对定位
+    3. 参照此模板生成完整 HTML，调用 code_to_design
+  层颜色约定：
+    - Presentation (UI/API)   → 蓝 #4A90D9/淡蓝 #EBF4FF
+    - Application (Service)   → 绿 #7ED321/淡绿 #F0F9EB
+    - Domain (Business)       → 橙 #F5A623/淡橙 #FFF8EB
+    - Infrastructure (Data)   → 紫 #9B59B6/淡紫 #F4ECF7
+    - External (第三方/外部)  → 灰 #9CA3AF/淡灰 #F3F4F6
+  模块名统一使用 data-name 标识
+==================================================================
+-->
+<section class="w-[1100px] bg-[#F8F9FA] p-[30px] flex flex-col gap-[24px]" data-name="architecture-root">
+
+  <!-- ─── 标题 ─── -->
+  <section class="flex flex-row items-center justify-between w-full" data-name="header">
+    <p class="text-[22px] font-bold text-[#333] leading-[30px]">系统架构图</p>
+    <p class="text-[12px] text-[#9CA3AF] leading-[16px]">System Architecture · 代码库结构</p>
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       分层容器模式（层 = section flex-col）
+       ══════════════════════════════════════ -->
+
+  <!-- ─── 系统边界框 ───
+       最外层虚线框，包住所有层，标识系统边界
+  -->
+  <section class="w-full p-[16px] flex flex-col gap-[16px]" data-name="system-boundary"
+           style="border:2px dashed #9CA3AF; border-radius:8px;">
+
+    <!-- ─── 层级标签 ─── -->
+    <section class="flex flex-row items-center gap-[8px]" data-name="layer-tag-external">
+      <section class="px-[10px] py-[3px] bg-[#9CA3AF] rounded-[4px]">
+        <p class="text-[10px] font-bold text-[#FFFFFF] leading-[14px]">外部</p>
+      </section>
+      <p class="text-[11px] text-[#9CA3AF] leading-[16px]">EXTERNAL</p>
+      <section class="flex-1 h-[1px] bg-[#E5E7EB]"></section>
+    </section>
+
+    <!-- ─── 外部模块行 ───
+         flex-row 水平排列，每个模块是一个 frame
+    -->
+    <section class="flex flex-row gap-[16px] flex-wrap" data-name="layer-external">
+      <section class="w-[200px] h-[80px] bg-[#F3F4F6] rounded-[6px] flex flex-col items-center justify-center"
+               data-name="external-auth0" style="border:1px solid #D1D5DB;">
+        <p class="text-[13px] font-semibold text-[#333] leading-[18px]">Auth0</p>
+        <p class="text-[10px] text-[#9CA3AF] leading-[14px]">身份认证服务</p>
+      </section>
+      <section class="w-[200px] h-[80px] bg-[#F3F4F6] rounded-[6px] flex flex-col items-center justify-center"
+               data-name="external-stripe" style="border:1px solid #D1D5DB;">
+        <p class="text-[13px] font-semibold text-[#333] leading-[18px]">Stripe</p>
+        <p class="text-[10px] text-[#9CA3AF] leading-[14px]">支付网关</p>
+      </section>
+      <section class="w-[200px] h-[80px] bg-[#F3F4F6] rounded-[6px] flex flex-col items-center justify-center"
+               data-name="external-email" style="border:1px solid #D1D5DB;">
+        <p class="text-[13px] font-semibold text-[#333] leading-[18px]">SendGrid</p>
+        <p class="text-[10px] text-[#9CA3AF] leading-[14px]">邮件服务</p>
+      </section>
+    </section>
+
+    <!-- ─── 层级标签 + 内容 ─── -->
+    <section class="mt-[8px]" data-name="layer-presentation">
+      <section class="flex flex-row items-center gap-[8px] mb-[8px]">
+        <section class="px-[10px] py-[3px] bg-[#4A90D9] rounded-[4px]">
+          <p class="text-[10px] font-bold text-[#FFFFFF] leading-[14px]">表现</p>
+        </section>
+        <p class="text-[11px] text-[#4A90D9] leading-[16px]">PRESENTATION</p>
+        <section class="flex-1 h-[1px] bg-[#EBF4FF]"></section>
+      </section>
+      <section class="flex flex-row gap-[16px]" data-name="layer-presentation-modules">
+        <section class="flex-1 h-[100px] bg-[#EBF4FF] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-web-app" style="border:1px solid #B3D4F0;">
+          <p class="text-[13px] font-semibold text-[#2C5F8A] leading-[18px]">Web App</p>
+          <p class="text-[10px] text-[#5A8AB5] leading-[14px]">React · 用户界面</p>
+        </section>
+        <section class="flex-1 h-[100px] bg-[#EBF4FF] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-api-gateway" style="border:1px solid #B3D4F0;">
+          <p class="text-[13px] font-semibold text-[#2C5F8A] leading-[18px]">API Gateway</p>
+          <p class="text-[10px] text-[#5A8AB5] leading-[14px]">Express · REST API</p>
+        </section>
+        <section class="flex-1 h-[100px] bg-[#EBF4FF] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-admin" style="border:1px solid #B3D4F0;">
+          <p class="text-[13px] font-semibold text-[#2C5F8A] leading-[18px]">Admin Panel</p>
+          <p class="text-[10px] text-[#5A8AB5] leading-[14px]">Vue · 后台管理</p>
+        </section>
+      </section>
+    </section>
+
+    <section data-name="layer-application">
+      <section class="flex flex-row items-center gap-[8px] mb-[8px]">
+        <section class="px-[10px] py-[3px] bg-[#7ED321] rounded-[4px]">
+          <p class="text-[10px] font-bold text-[#FFFFFF] leading-[14px]">应用</p>
+        </section>
+        <p class="text-[11px] text-[#7ED321] leading-[16px]">APPLICATION</p>
+        <section class="flex-1 h-[1px] bg-[#F0F9EB]"></section>
+      </section>
+      <section class="flex flex-row gap-[16px]" data-name="layer-application-modules">
+        <section class="flex-1 h-[100px] bg-[#F0F9EB] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-order-svc" style="border:1px solid #B8E6A3;">
+          <p class="text-[13px] font-semibold text-[#4A7A2E] leading-[18px]">Order Service</p>
+          <p class="text-[10px] text-[#6CA64A] leading-[14px]">订单处理 + 状态机</p>
+        </section>
+        <section class="flex-1 h-[100px] bg-[#F0F9EB] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-payment-svc" style="border:1px solid #B8E6A3;">
+          <p class="text-[13px] font-semibold text-[#4A7A2E] leading-[18px]">Payment Service</p>
+          <p class="text-[10px] text-[#6CA64A] leading-[14px]">支付桥接 · Stripe</p>
+        </section>
+        <section class="flex-1 h-[100px] bg-[#F0F9EB] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-notification" style="border:1px solid #B8E6A3;">
+          <p class="text-[13px] font-semibold text-[#4A7A2E] leading-[18px]">Notification</p>
+          <p class="text-[10px] text-[#6CA64A] leading-[14px]">邮件/推送调度</p>
+        </section>
+      </section>
+    </section>
+
+    <section data-name="layer-domain">
+      <section class="flex flex-row items-center gap-[8px] mb-[8px]">
+        <section class="px-[10px] py-[3px] bg-[#F5A623] rounded-[4px]">
+          <p class="text-[10px] font-bold text-[#FFFFFF] leading-[14px]">领域</p>
+        </section>
+        <p class="text-[11px] text-[#F5A623] leading-[16px]">DOMAIN</p>
+        <section class="flex-1 h-[1px] bg-[#FFF8EB]"></section>
+      </section>
+      <section class="flex flex-row gap-[16px]" data-name="layer-domain-modules">
+        <section class="flex-1 h-[90px] bg-[#FFF8EB] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-order-core" style="border:1px solid #F5D699;">
+          <p class="text-[13px] font-semibold text-[#8C6A1A] leading-[18px]">Order Domain</p>
+          <p class="text-[10px] text-[#B8943A] leading-[14px]">订单 · 行项 · 价格</p>
+        </section>
+        <section class="flex-1 h-[90px] bg-[#FFF8EB] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-user-core" style="border:1px solid #F5D699;">
+          <p class="text-[13px] font-semibold text-[#8C6A1A] leading-[18px]">User Domain</p>
+          <p class="text-[10px] text-[#B8943A] leading-[14px]">用户 · 角色 · 权限</p>
+        </section>
+        <section class="flex-1 h-[90px] bg-[#FFF8EB] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-payment-core" style="border:1px solid #F5D699;">
+          <p class="text-[13px] font-semibold text-[#8C6A1A] leading-[18px]">Payment Domain</p>
+          <p class="text-[10px] text-[#B8943A] leading-[14px]">支付 · 退款 · 账单</p>
+        </section>
+      </section>
+    </section>
+
+    <section data-name="layer-infrastructure">
+      <section class="flex flex-row items-center gap-[8px] mb-[8px]">
+        <section class="px-[10px] py-[3px] bg-[#9B59B6] rounded-[4px]">
+          <p class="text-[10px] font-bold text-[#FFFFFF] leading-[14px]">基础</p>
+        </section>
+        <p class="text-[11px] text-[#9B59B6] leading-[16px]">INFRASTRUCTURE</p>
+        <section class="flex-1 h-[1px] bg-[#F4ECF7]"></section>
+      </section>
+      <section class="flex flex-row gap-[16px]" data-name="layer-infrastructure-modules">
+        <section class="flex-1 h-[90px] bg-[#F4ECF7] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-postgres" style="border:1px solid #C9A0D4;">
+          <p class="text-[13px] font-semibold text-[#6B3A8A] leading-[18px]">PostgreSQL</p>
+          <p class="text-[10px] text-[#8E5AAA] leading-[14px]">主数据库</p>
+        </section>
+        <section class="flex-1 h-[90px] bg-[#F4ECF7] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-redis" style="border:1px solid #C9A0D4;">
+          <p class="text-[13px] font-semibold text-[#6B3A8A] leading-[18px]">Redis</p>
+          <p class="text-[10px] text-[#8E5AAA] leading-[14px]">缓存 · Session</p>
+        </section>
+        <section class="flex-1 h-[90px] bg-[#F4ECF7] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-queue" style="border:1px solid #C9A0D4;">
+          <p class="text-[13px] font-semibold text-[#6B3A8A] leading-[18px]">RabbitMQ</p>
+          <p class="text-[10px] text-[#8E5AAA] leading-[14px]">消息队列</p>
+        </section>
+        <section class="flex-1 h-[90px] bg-[#F4ECF7] rounded-[6px] p-[12px] flex flex-col justify-center"
+                 data-name="module-s3" style="border:1px solid #C9A0D4;">
+          <p class="text-[13px] font-semibold text-[#6B3A8A] leading-[18px]">S3</p>
+          <p class="text-[10px] text-[#8E5AAA] leading-[14px]">文件存储</p>
+        </section>
+      </section>
+    </section>
+
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       依赖关系连线（箭头）模式
+       ══════════════════════════════════════ -->
+
+  <!--
+       在分层架构中，模块间的连线通常是单向的（上层依赖下层）。
+       API Gateway → Order Service 的连线示例：
+       由于模块在 flex 布局中，无法用绝对定位精确画箭头。
+       替代方案：在架构图下方单独加一个"依赖关系"参考图。
+  -->
+
+  <!-- ─── 依赖关系参考 ─── -->
+  <section class="w-full p-[16px] bg-[#FFFFFF] rounded-[8px] flex flex-col gap-[12px]" data-name="dependency-section"
+           style="border:1px solid #E5E7EB;">
+    <p class="text-[14px] font-semibold text-[#333] leading-[20px]">依赖关系图</p>
+
+    <section class="flex flex-row items-center gap-[0px]" data-name="dep-api-to-order">
+      <section class="w-[120px] h-[36px] bg-[#EBF4FF] rounded-[4px] flex items-center justify-center" data-name="dep-from" style="border:1px solid #B3D4F0;">
+        <p class="text-[11px] font-medium text-[#2C5F8A] leading-[16px]">API Gateway</p>
+      </section>
+      <!-- 箭头 -->
+      <section class="w-[60px] h-[2px] bg-[#9CA3AF]" data-name="dep-line"></section>
+      <section class="w-[10px] h-[10px] rotate-45 bg-[#9CA3AF]" style="margin-left:-7px;" data-name="dep-arrowhead"></section>
+      <section class="w-[120px] h-[36px] bg-[#F0F9EB] rounded-[4px] flex items-center justify-center" data-name="dep-to" style="border:1px solid #B8E6A3;">
+        <p class="text-[11px] font-medium text-[#4A7A2E] leading-[16px]">Order Service</p>
+      </section>
+    </section>
+
+    <section class="flex flex-row items-center gap-[0px]" data-name="dep-order-to-db">
+      <section class="w-[120px] h-[36px] bg-[#F0F9EB] rounded-[4px] flex items-center justify-center" data-name="dep-from" style="border:1px solid #B8E6A3;">
+        <p class="text-[11px] font-medium text-[#4A7A2E] leading-[16px]">Order Service</p>
+      </section>
+      <section class="w-[60px] h-[2px] bg-[#9CA3AF]" data-name="dep-line"></section>
+      <section class="w-[10px] h-[10px] rotate-45 bg-[#9CA3AF]" style="margin-left:-7px;" data-name="dep-arrowhead"></section>
+      <section class="w-[120px] h-[36px] bg-[#F4ECF7] rounded-[4px] flex items-center justify-center" data-name="dep-to" style="border:1px solid #C9A0D4;">
+        <p class="text-[11px] font-medium text-[#6B3A8A] leading-[16px]">PostgreSQL</p>
+      </section>
+    </section>
+
+    <section class="flex flex-row items-center gap-[0px]" data-name="dep-api-to-auth0">
+      <section class="w-[120px] h-[36px] bg-[#EBF4FF] rounded-[4px] flex items-center justify-center" data-name="dep-from" style="border:1px solid #B3D4F0;">
+        <p class="text-[11px] font-medium text-[#2C5F8A] leading-[16px]">API Gateway</p>
+      </section>
+      <section class="w-[60px] h-[2px] bg-[#9CA3AF]" data-name="dep-line"></section>
+      <section class="w-[10px] h-[10px] rotate-45 bg-[#9CA3AF]" style="margin-left:-7px;" data-name="dep-arrowhead"></section>
+      <section class="w-[120px] h-[36px] bg-[#F3F4F6] rounded-[4px] flex items-center justify-center" data-name="dep-to" style="border:1px solid #D1D5DB;">
+        <p class="text-[11px] font-medium text-[#666] leading-[16px]">Auth0</p>
+      </section>
+    </section>
+
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       图例
+       ══════════════════════════════════════ -->
+  <section class="flex flex-row gap-[24px] p-[12px] bg-[#FFFFFF] rounded-[8px]" data-name="legend"
+           style="border:1px solid #E5E7EB;">
+    <section class="flex flex-row items-center gap-[6px]" data-name="legend-presentation">
+      <section class="w-[12px] h-[12px] bg-[#4A90D9] rounded-[2px]"></section>
+      <p class="text-[11px] text-[#666] leading-[16px]">表现层</p>
+    </section>
+    <section class="flex flex-row items-center gap-[6px]" data-name="legend-application">
+      <section class="w-[12px] h-[12px] bg-[#7ED321] rounded-[2px]"></section>
+      <p class="text-[11px] text-[#666] leading-[16px]">应用层</p>
+    </section>
+    <section class="flex flex-row items-center gap-[6px]" data-name="legend-domain">
+      <section class="w-[12px] h-[12px] bg-[#F5A623] rounded-[2px]"></section>
+      <p class="text-[11px] text-[#666] leading-[16px]">领域层</p>
+    </section>
+    <section class="flex flex-row items-center gap-[6px]" data-name="legend-infra">
+      <section class="w-[12px] h-[12px] bg-[#9B59B6] rounded-[2px]"></section>
+      <p class="text-[11px] text-[#666] leading-[16px]">基础设施</p>
+    </section>
+    <section class="flex flex-row items-center gap-[6px]" data-name="legend-external">
+      <section class="w-[12px] h-[12px] bg-[#9CA3AF] rounded-[2px]"></section>
+      <p class="text-[11px] text-[#666] leading-[16px]">外部依赖</p>
+    </section>
+    <section class="flex flex-row items-center gap-[6px]" data-name="legend-dependency">
+      <section class="w-[20px] h-[2px] bg-[#9CA3AF]"></section>
+      <p class="text-[11px] text-[#666] leading-[16px]">依赖方向</p>
+    </section>
+  </section>
+
+</section>

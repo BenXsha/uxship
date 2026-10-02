@@ -1,0 +1,151 @@
+<!--
+==================================================================
+  MasterGo 流程图模板 (SVG Marker 版本)
+  用途：AI 将代码库分析结果渲染为业务逻辑流程图
+  使用方法：
+    1. AI 分析代码库提取业务逻辑流程
+    2. 规划布局：计算每个节点的坐标 (x, y)
+    3. 参照此模板的结构生成完整 HTML
+    4. 调用 code_to_design 渲染到画布
+  箭头系统：
+    - 使用 <svg> + <defs><marker> 定义箭头端
+    - <line marker-end="url(#arrow)"> 自动渲染三角箭头
+    - svg-extractor.ts 现在会解析 marker 定义并映射到 strokeCap
+  坐标系统：
+    - 容器尺寸以 1200px 宽为准
+    - 节点间距推荐：纵向间隔 80px，横向间隔 60px
+    - 所有节点使用 ABSOLUTE 定位，SVG 覆盖全容器
+  Tailwind 转换说明：
+    - w-[Npx] → width: Npx，h-[Npx] → height: Npx
+    - rounded-[Npx] → border-radius: Npx
+    - bg-[#RRGGBB] → background-color: #RRGGBB
+    - text-[Npx] → font-size: Npx
+    - leading-[Npx] → line-height: Npx
+    - overflow-visible → overflow: visible（SVG 箭头不被裁剪）
+==================================================================
+-->
+<section class="w-[1200px] h-[900px] bg-[#F8F9FA]" data-name="flowchart-root" style="position:relative;">
+
+  <!-- ─── 图例 ─── -->
+  <section class="absolute flex flex-row gap-[20px]" style="left:30px; top:20px;" data-name="legend">
+    <section class="flex flex-row items-center gap-[6px]" data-name="legend-startend">
+      <section class="w-[14px] h-[14px] rounded-[20px] bg-[#4A90D9]"></section>
+      <p class="text-[11px] text-[#666] leading-[16px]">开始/结束</p>
+    </section>
+    <section class="flex flex-row items-center gap-[6px]" data-name="legend-process">
+      <section class="w-[14px] h-[14px] rounded-[3px] bg-[#FFFFFF]" style="border:1.5px solid #4A90D9;"></section>
+      <p class="text-[11px] text-[#666] leading-[16px]">处理</p>
+    </section>
+    <section class="flex flex-row items-center gap-[6px]" data-name="legend-decision">
+      <section class="w-[14px] h-[14px] rotate-45 bg-[#F5A623]"></section>
+      <p class="text-[11px] text-[#666] leading-[16px]">判断</p>
+    </section>
+    <section class="flex flex-row items-center gap-[6px]" data-name="legend-io">
+      <section class="w-[18px] h-[14px]" style="border:1.5px solid #7ED321; border-radius:3px; transform:skewX(-15deg);"></section>
+      <p class="text-[11px] text-[#666] leading-[16px]">输入/输出</p>
+    </section>
+  </section>
+
+  <!-- SVG 箭头层（覆盖全容器，不遮挡交互） -->
+  <svg class="absolute overflow-visible" style="left:0; top:0; width:1200px; height:900px; pointer-events:none;"
+       data-name="arrow-layer">
+    <defs>
+      <!--
+        箭头定义（AI 复制这些模式修改颜色）
+        markerWidth/Height: 箭头视口大小
+        refX/refY: 箭头对齐到线末端的位置（refX=线长时箭头在线末端）
+        orient="auto": 箭头自动旋转匹配线方向
+        <path d="M 0 0 L 10 4 L 0 8 Z"> = 三角形箭头
+      -->
+      <marker id="arrow-gray" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+        <path d="M 0 0 L 10 4 L 0 8 Z" fill="#9CA3AF" />
+      </marker>
+      <marker id="arrow-blue" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+        <path d="M 0 0 L 10 4 L 0 8 Z" fill="#4A90D9" />
+      </marker>
+    </defs>
+
+    <!-- Start → Process1: 从 (600,124) 到 (600,176) 垂直向下 -->
+    <line x1="600" y1="124" x2="600" y2="176" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow-gray)"
+          data-name="arrow-start-process" />
+
+    <!-- Process1 → Decision1: 从菱形上顶点 (600,232) 到 (600,300) -->
+    <line x1="600" y1="232" x2="600" y2="296" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow-gray)"
+          data-name="arrow-process-decision" />
+
+    <!-- Decision1(左顶点) → IO1: 从 (550,350) 到 (310,350) 水平向左 -->
+    <line x1="550" y1="350" x2="314" y2="350" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow-gray)"
+          data-name="arrow-decision-io" />
+
+    <!-- Decision1(下顶点) → SubProcess: 从 (600,400) 到 (600,656) 垂直向下 -->
+    <line x1="600" y1="400" x2="600" y2="656" stroke="#4A90D9" stroke-width="2" marker-end="url(#arrow-blue)"
+          data-name="arrow-decision-subprocess" />
+
+    <!-- SubProcess → End: 从 (600,712) 到 (600,796) -->
+    <line x1="600" y1="712" x2="600" y2="796" stroke="#9CA3AF" stroke-width="2" marker-end="url(#arrow-gray)"
+          data-name="arrow-subprocess-end" />
+  </svg>
+
+  <!-- ─── 开始节点 ───
+       圆角矩形，蓝底白字，宽160px 高44px
+       坐标示例: left:520px, top:80px
+       中心在 (600, 102)
+  -->
+  <section class="absolute w-[160px] h-[44px] bg-[#4A90D9] rounded-[22px] flex items-center justify-center"
+           style="left:520px; top:80px;" data-name="Start">
+    <p class="text-[14px] font-medium text-[#FFFFFF] leading-[20px]">开始</p>
+  </section>
+
+  <!-- ─── 处理节点 ───
+       圆角矩形，白底蓝框，宽180px 高52px
+       写法: <section> 代替 <button>
+       data-name 必须设置
+       中心在 (600, 206)
+  -->
+  <section class="absolute w-[180px] h-[52px] bg-[#FFFFFF] rounded-[6px] flex items-center justify-center"
+           style="left:510px; top:180px; border:1.5px solid #4A90D9;" data-name="Process1">
+    <p class="text-[13px] text-[#333] leading-[18px] text-center" data-name="label">接收用户请求</p>
+  </section>
+
+  <!-- ─── 判断/决策节点 ───
+       菱形：外层 100x100 旋转 45°，文字反旋转
+       视觉 = 菱形，四条顶点分别在 (550,350)(650,350)(600,300)(600,400)
+       总尺寸 = 约 142px 对角线
+  -->
+  <section class="absolute w-[100px] h-[100px]" style="left:550px; top:300px;" data-name="Decision1">
+    <section class="w-[100px] h-[100px] rotate-45 bg-[#F5A623] flex items-center justify-center" data-name="diamond-shape">
+      <p class="text-[12px] font-medium text-[#FFFFFF] leading-[16px] text-center -rotate-45 px-[16px]" data-name="label">验证用户身份</p>
+    </section>
+  </section>
+
+  <!-- ─── 输入/输出节点（平行四边形）───
+       用 skewX 模拟倾斜
+  -->
+  <section class="absolute w-[160px] h-[44px] bg-[#7ED321] flex items-center justify-center"
+           style="left:150px; top:480px;" data-name="IO1">
+    <p class="text-[13px] font-medium text-[#FFFFFF] leading-[18px]" style="transform:skewX(15deg);" data-name="label">输出结果</p>
+  </section>
+
+  <!-- ─── 子流程节点 ───
+       两侧竖线区分：用 border-left + border-right
+  -->
+  <section class="absolute w-[160px] h-[52px] bg-[#FFFFFF] rounded-[4px] flex items-center justify-center"
+           style="left:520px; top:660px; border:1.5px solid #4A90D9; border-left-width:4px; border-right-width:4px; border-left-color:#4A90D9; border-right-color:#4A90D9;" data-name="SubProcess">
+    <p class="text-[12px] text-[#333] leading-[16px] text-center" data-name="label">子流程:更新库存</p>
+  </section>
+
+  <!-- ─── 结束节点 ─── -->
+  <section class="absolute w-[160px] h-[44px] bg-[#333333] rounded-[22px] flex items-center justify-center"
+           style="left:520px; top:800px;" data-name="End">
+    <p class="text-[14px] font-medium text-[#FFFFFF] leading-[20px]">结束</p>
+  </section>
+
+  <!-- ─── 箭头上的标签 ─── -->
+  <section class="absolute" style="left:420px; top:343px;" data-name="arrow-label-no">
+    <p class="text-[11px] text-[#F5A623] leading-[16px]">❌ 身份无效</p>
+  </section>
+  <section class="absolute" style="left:560px; top:460px;" data-name="arrow-label-yes">
+    <p class="text-[11px] text-[#4A90D9] leading-[16px]">✅ 身份有效</p>
+  </section>
+
+</section>

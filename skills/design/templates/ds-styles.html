@@ -1,0 +1,52 @@
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     ds-styles.html —— 库样式注册面板（P1-1）
+
+     用途：`library_register_styles({ parentId: <DS-Styles> })` 的输入。
+     与 `ds-library.html` 的分工：
+       - `ds-library.html`：令牌 + `data-token-*` 绑定 + 组件变体（Tokens 段节点名 = 令牌名，保证绑定 1:1）
+       - 本文件：**只**放「色板」与「排版样本」，节点名按识别约定命名，避免把 UI 文案也注册成样式
+
+     识别约定（见 plugin-penpot/lib/api/libraryStyleHandlers.ts）：
+       - 色板 = 纯色矩形 + **自身名**含角色词（Brand/Hover/Text/Border/Success/…）
+         → 样式 `name` = 自身名，`path` = 节点层级（分组用它）
+       - 排版 = 文本节点 → `name` = `/` 前的叶子名，`path` = `/` 前的分组（`Heading/H1` → name `H1`, path `Heading`）
+
+     ⚠️ 本面板**不写任何多余额外文本**（否则会被注册成文字样式）。
+     ⚠️ 色板矩形的**填充色就是被注册的色值**：Border 用描边色本身做填充（不要用白底+描边）。
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<section class="w-[640px] flex flex-col gap-[24px] p-[32px] bg-[#FFFFFF]" data-name="DS-Styles" style="font-family:'Noto Sans TC'">
+
+  <!-- 颜色样式：9 个（样式 path = DS-Styles / <分组>） -->
+  <section class="flex flex-row gap-[12px]" data-name="Brand">
+    <section class="w-[96px] h-[64px] rounded-[8px] bg-[#4340EA]" data-name="Brand Primary"></section>
+    <section class="w-[96px] h-[64px] rounded-[8px] bg-[#3730C4]" data-name="Brand Hover"></section>
+  </section>
+
+  <section class="flex flex-row gap-[12px]" data-name="Text">
+    <section class="w-[96px] h-[64px] rounded-[8px] bg-[#0F172A]" data-name="Text Default"></section>
+    <section class="w-[96px] h-[64px] rounded-[8px] bg-[#64748B]" data-name="Text Muted"></section>
+  </section>
+
+  <section class="flex flex-row gap-[12px]" data-name="Border">
+    <section class="w-[96px] h-[64px] rounded-[8px] bg-[#E2E8F0]" data-name="Border Default"></section>
+  </section>
+
+  <section class="flex flex-row gap-[12px]" data-name="Semantic">
+    <section class="w-[96px] h-[64px] rounded-[8px] bg-[#16A34A]" data-name="Success"></section>
+    <section class="w-[96px] h-[64px] rounded-[8px] bg-[#D97706]" data-name="Warning"></section>
+    <section class="w-[96px] h-[64px] rounded-[8px] bg-[#DC2626]" data-name="Danger"></section>
+  </section>
+
+  <section class="flex flex-row gap-[12px]" data-name="Badge">
+    <section class="w-[96px] h-[64px] rounded-[8px] bg-[#E0F2FE]" data-name="Badge Info Bg"></section>
+  </section>
+
+  <!-- 文字样式：4 个（`Heading/H1` → name `H1`，path `Heading`） -->
+  <section class="flex flex-col gap-[12px]" data-name="Type-Samples">
+    <p class="text-[32px] font-bold text-[#0F172A] leading-[40px]" data-name="Heading/H1">Heading 1</p>
+    <p class="text-[24px] font-bold text-[#0F172A] leading-[32px]" data-name="Heading/H2">Heading 2</p>
+    <p class="text-[14px] text-[#334155] leading-[22px]" data-name="Body/Regular">Body text</p>
+    <p class="text-[12px] font-semibold text-[#334155] leading-[16px]" data-name="Label/Strong">Label</p>
+  </section>
+
+</section>

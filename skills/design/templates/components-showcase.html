@@ -1,0 +1,274 @@
+<!-- ============================================================
+     MasterGo 组件展示 · 常用组件及状态
+     使用内置 <component> 标签渲染
+     ============================================================ -->
+<section class="flex flex-col gap-[0px] bg-[#F8F9F6] w-[1200px]" data-name="ds-components">
+
+  <section class="flex items-center justify-between w-full h-[56px] px-[32px] bg-[#4340EA]" data-name="header">
+    <p class="text-[18px] font-bold text-[#FFFFFF] leading-[26px]">COMPONENT LIBRARY · 组件库</p>
+    <p class="text-[12px] leading-[16px] text-[#C8C7F9]">Brand Purple v2.0</p>
+  </section>
+
+  <section class="flex flex-col px-[32px] py-[20px] gap-[32px]" data-name="content">
+
+    <!-- ═══ 1. Buttons ═══ -->
+    <section class="flex flex-col gap-[16px]" data-name="section-buttons">
+      <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Button 按钮</p>
+      <section class="flex flex-col gap-[16px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+
+        <section class="flex flex-col gap-[8px]" data-name="group-variants">
+          <p class="text-[11px] font-semibold text-[#9CA3AF] leading-[16px]">VARIANTS 变体</p>
+          <section class="flex flex-row items-center gap-[12px]">
+            <component type='button' config='{"label":"Primary","variant":"primary"}' class="h-[36px]" data-name="btn-primary" />
+            <component type='button' config='{"label":"Secondary","variant":"secondary"}' class="h-[36px]" data-name="btn-secondary" />
+            <component type='button' config='{"label":"Outline","variant":"outline"}' class="h-[36px]" data-name="btn-outline" />
+            <component type='button' config='{"label":"Text","variant":"text"}' class="h-[36px]" data-name="btn-text" />
+          </section>
+        </section>
+
+        <section class="flex flex-col gap-[8px]" data-name="group-sizes">
+          <p class="text-[11px] font-semibold text-[#9CA3AF] leading-[16px]">SIZES 尺寸</p>
+          <section class="flex flex-row items-center gap-[12px]">
+            <component type='button' config='{"label":"Small","variant":"primary","size":{"tier":"sm"}}' class="h-[28px]" data-name="btn-sm" />
+            <component type='button' config='{"label":"Default","variant":"primary"}' class="h-[36px]" data-name="btn-md" />
+            <component type='button' config='{"label":"Large","variant":"primary","size":{"tier":"lg"}}' class="h-[44px]" data-name="btn-lg" />
+            <component type='button' config='{"label":"Pill","variant":"primary","shape":"pill"}' class="h-[36px]" data-name="btn-pill" />
+          </section>
+        </section>
+
+        <section class="flex flex-col gap-[8px]" data-name="group-states">
+          <p class="text-[11px] font-semibold text-[#9CA3AF] leading-[16px]">STATES 状态</p>
+          <section class="flex flex-row items-center gap-[12px]">
+            <component type='button' config='{"label":"Default","variant":"primary"}' class="h-[36px]" data-name="btn-default" />
+            <component type='button' config='{"label":"Hover","variant":"primary","hover":true}' class="h-[36px]" data-name="btn-hover" />
+            <component type='button' config='{"label":"Disabled","variant":"primary","disabled":true}' class="h-[36px]" data-name="btn-disabled" />
+          </section>
+        </section>
+
+        <section class="flex flex-col gap-[8px]" data-name="group-icons">
+          <p class="text-[11px] font-semibold text-[#9CA3AF] leading-[16px]">WITH ICONS 含图标</p>
+          <section class="flex flex-row items-center gap-[12px]">
+            <component type='button' config='{"label":"Search","variant":"primary","icon":"🔍"}' class="h-[36px]" data-name="btn-icon-left" />
+            <component type='button' config='{"label":"Next","variant":"primary","iconRight":"→"}' class="h-[36px]" data-name="btn-icon-right" />
+          </section>
+        </section>
+
+      </section>
+    </section>
+
+    <!-- ═══ 2. Text Inputs ═══ -->
+    <section class="flex flex-col gap-[16px]" data-name="section-inputs">
+      <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Text Input 输入框</p>
+      <section class="flex flex-col gap-[16px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+
+        <section class="flex flex-col gap-[8px]" data-name="group-input-sizes">
+          <p class="text-[11px] font-semibold text-[#9CA3AF] leading-[16px]">SIZES 尺寸</p>
+          <section class="flex flex-col gap-[8px]">
+            <component type='text-input' config='{"placeholder":"Small input...","size":{"tier":"sm"}}' class="w-[320px] h-[32px]" data-name="input-sm" />
+            <component type='text-input' config='{"placeholder":"Default input..."}' class="w-[320px] h-[36px]" data-name="input-md" />
+            <component type='text-input' config='{"placeholder":"Large input...","size":{"tier":"lg"}}' class="w-[320px] h-[44px]" data-name="input-lg" />
+          </section>
+        </section>
+
+        <section class="flex flex-col gap-[8px]" data-name="group-input-icons">
+          <p class="text-[11px] font-semibold text-[#9CA3AF] leading-[16px]">WITH ICONS 含图标</p>
+          <section class="flex flex-row gap-[16px]">
+            <component type='text-input' config='{"placeholder":"Search...","icon":"🔍"}' class="w-[240px] h-[36px]" data-name="input-with-icon" />
+            <component type='text-input' config='{"placeholder":"password","suffix":"👁"}' class="w-[240px] h-[36px]" data-name="input-with-suffix" />
+          </section>
+        </section>
+
+      </section>
+    </section>
+
+    <!-- ═══ 3. Toggle + Checkbox + Radio ═══ -->
+    <section class="flex flex-row gap-[24px]" data-name="row-selection">
+
+      <section class="flex-1 flex flex-col gap-[16px]" data-name="section-toggle">
+        <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Toggle 开关</p>
+        <section class="flex flex-col gap-[12px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+          <section class="flex flex-row items-center gap-[12px]" data-name="group-toggle-states">
+            <component type='toggle' config='{"checked":false}' class="w-[48px] h-[24px]" data-name="toggle-off" />
+            <component type='toggle' config='{"checked":true}' class="w-[48px] h-[24px]" data-name="toggle-on" />
+            <component type='toggle' config='{"checked":false}' class="w-[48px] h-[24px] opacity-38" data-name="toggle-disabled" />
+          </section>
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[16px]" data-name="section-checkbox">
+        <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Checkbox 复选框</p>
+        <section class="flex flex-col gap-[12px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+          <component type='checkbox' config='{"label":"Unchecked","checked":false}' data-name="cb-unchecked" />
+          <component type='checkbox' config='{"label":"Checked","checked":true}' data-name="cb-checked" />
+          <component type='checkbox' config='{"label":"Disabled","checked":false,"disabled":true}' data-name="cb-disabled" />
+          <component type='checkbox' config='{"label":"Checked Disabled","checked":true,"disabled":true}' data-name="cb-checked-disabled" />
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[16px]" data-name="section-radio">
+        <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Radio 单选框</p>
+        <section class="flex flex-col gap-[12px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+          <component type='radio' config='{"label":"Unchecked","checked":false}' data-name="radio-unchecked" />
+          <component type='radio' config='{"label":"Checked","checked":true}' data-name="radio-checked" />
+          <component type='radio' config='{"label":"Disabled","checked":false,"disabled":true}' data-name="radio-disabled" />
+        </section>
+      </section>
+
+    </section>
+
+    <!-- ═══ 4. Badges + Tags ═══ -->
+    <section class="flex flex-row gap-[24px]" data-name="row-badges">
+
+      <section class="flex-1 flex flex-col gap-[16px]" data-name="section-badges">
+        <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Badge 徽标</p>
+        <section class="flex flex-col gap-[12px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+          <section class="flex flex-row items-center gap-[8px]" data-name="group-badge-variants">
+            <component type='badge' config='{"label":"Default","variant":"default"}' data-name="badge-default" />
+            <component type='badge' config='{"label":"Success","variant":"success"}' data-name="badge-success" />
+            <component type='badge' config='{"label":"Warning","variant":"warning"}' data-name="badge-warning" />
+            <component type='badge' config='{"label":"Danger","variant":"danger"}' data-name="badge-danger" />
+            <component type='badge' config='{"label":"Info","variant":"info"}' data-name="badge-info" />
+          </section>
+          <section class="flex flex-row items-center gap-[8px]" data-name="group-badge-sizes">
+            <component type='badge' config='{"label":"SM","variant":"default","size":{"tier":"sm"}}' data-name="badge-sm" />
+            <component type='badge' config='{"label":"MD","variant":"default"}' data-name="badge-md" />
+            <component type='badge' config='{"label":"LG","variant":"default","size":{"tier":"lg"}}' data-name="badge-lg" />
+          </section>
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[16px]" data-name="section-tags">
+        <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Tag 标签</p>
+        <section class="flex flex-col gap-[12px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+          <section class="flex flex-row flex-wrap items-center gap-[8px]" data-name="group-tag-variants">
+            <component type='tag' config='{"label":"Default","variant":"default"}' data-name="tag-default" />
+            <component type='tag' config='{"label":"Primary","variant":"primary"}' data-name="tag-primary" />
+            <component type='tag' config='{"label":"Success","variant":"success"}' data-name="tag-success" />
+            <component type='tag' config='{"label":"Warning","variant":"warning"}' data-name="tag-warning" />
+            <component type='tag' config='{"label":"Danger","variant":"danger"}' data-name="tag-danger" />
+          </section>
+          <section class="flex flex-row items-center gap-[8px]" data-name="group-tag-closable">
+            <component type='tag' config='{"label":"Closable","closable":true}' data-name="tag-closable" />
+            <component type='tag' config='{"label":"Primary","variant":"primary","closable":true}' data-name="tag-primary-closable" />
+          </section>
+        </section>
+      </section>
+
+    </section>
+
+    <!-- ═══ 5. Progress + Spinner ═══ -->
+    <section class="flex flex-row gap-[24px]" data-name="row-feedback">
+
+      <section class="flex-1 flex flex-col gap-[16px]" data-name="section-progress">
+        <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Progress 进度条</p>
+        <section class="flex flex-col gap-[16px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+          <section class="flex flex-col gap-[6px]" data-name="progress-25">
+            <p class="text-[11px] leading-[16px] text-[#6B7280]">25% — Loading...</p>
+            <component type='progress' config='{"percent":25,"showLabel":false}' class="w-full h-[6px]" data-name="progress-bar-25" />
+          </section>
+          <section class="flex flex-col gap-[6px]" data-name="progress-50">
+            <p class="text-[11px] leading-[16px] text-[#6B7280]">50%</p>
+            <component type='progress' config='{"percent":50,"showLabel":false}' class="w-full h-[6px]" data-name="progress-bar-50" />
+          </section>
+          <section class="flex flex-col gap-[6px]" data-name="progress-75">
+            <p class="text-[11px] leading-[16px] text-[#6B7280]">75%</p>
+            <component type='progress' config='{"percent":75,"showLabel":false,"fillColor":"#22C55E"}' class="w-full h-[6px]" data-name="progress-bar-75" />
+          </section>
+          <section class="flex flex-col gap-[6px]" data-name="progress-100">
+            <p class="text-[11px] leading-[16px] text-[#22C55E]">Complete!</p>
+            <component type='progress' config='{"percent":100,"showLabel":false,"fillColor":"#22C55E"}' class="w-full h-[6px]" data-name="progress-bar-100" />
+          </section>
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[16px]" data-name="section-spinner">
+        <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Spinner 加载器</p>
+        <section class="flex flex-col gap-[12px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+          <section class="flex flex-row items-center gap-[20px]" data-name="group-spinner-sizes">
+            <component type='spinner' config='{"size":{"width":20,"height":3}}' data-name="spinner-sm" />
+            <component type='spinner' config='{"size":{"width":32,"height":3}}' data-name="spinner-md" />
+            <component type='spinner' config='{"size":{"width":44,"height":4}}' data-name="spinner-lg" />
+          </section>
+          <section class="flex flex-row items-center gap-[20px]" data-name="group-spinner-colors">
+            <component type='spinner' config='{"size":{"width":28,"height":3}}' data-name="spinner-brand" />
+            <component type='spinner' config='{"size":{"width":28,"height":3},"color":"#22C55E"}' data-name="spinner-success" />
+            <component type='spinner' config='{"size":{"width":28,"height":3},"color":"#EF4444"}' data-name="spinner-error" />
+          </section>
+        </section>
+      </section>
+
+    </section>
+
+    <!-- ═══ 6. Alerts ═══ -->
+    <section class="flex flex-col gap-[16px]" data-name="section-alerts">
+      <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Alert 提示条</p>
+      <section class="flex flex-col gap-[8px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+        <component type='alert' config='{"title":"Info Alert","content":"This is an informational message for the user.","variant":"info"}' class="w-full" data-name="alert-info" />
+        <component type='alert' config='{"title":"Success Alert","content":"Operation completed successfully!","variant":"success"}' class="w-full" data-name="alert-success" />
+        <component type='alert' config='{"title":"Warning Alert","content":"Please check your input before continuing.","variant":"warning"}' class="w-full" data-name="alert-warning" />
+        <component type='alert' config='{"title":"Error Alert","content":"Something went wrong. Please try again.","variant":"danger"}' class="w-full" data-name="alert-error" />
+        <component type='alert' config='{"title":"Info No Content","variant":"info"}' class="w-full" data-name="alert-info-nc" />
+      </section>
+    </section>
+
+    <!-- ═══ 7. Tabs ═══ -->
+    <section class="flex flex-col gap-[16px]" data-name="section-tabs">
+      <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Tabs 标签页</p>
+      <section class="flex flex-col gap-[12px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+        <section class="flex flex-col gap-[6px]" data-name="group-tabs-underline">
+          <p class="text-[11px] font-semibold text-[#9CA3AF] leading-[16px]">UNDERLINE</p>
+          <component type='tabs' config='{"items":["Active","Tab 2","Tab 3"],"activeIndex":0,"variant":"underline"}' data-name="tabs-underline" />
+        </section>
+        <section class="flex flex-col gap-[6px]" data-name="group-tabs-pill">
+          <p class="text-[11px] font-semibold text-[#9CA3AF] leading-[16px]">PILL</p>
+          <component type='tabs' config='{"items":["Active","Tab 2","Tab 3"],"activeIndex":0,"variant":"pill"}' data-name="tabs-pill" />
+        </section>
+      </section>
+    </section>
+
+    <!-- ═══ 8. Select + Divider ═══ -->
+    <section class="flex flex-row gap-[24px]" data-name="row-misc">
+
+      <section class="flex-1 flex flex-col gap-[16px]" data-name="section-select">
+        <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Select 选择器</p>
+        <section class="flex flex-col gap-[12px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+          <section class="flex flex-col gap-[8px]" data-name="group-select-sizes">
+            <component type='select' config='{"placeholder":"Small","size":{"tier":"sm"}}' class="w-[240px] h-[32px]" data-name="select-sm" />
+            <component type='select' config='{"placeholder":"Option 1"}' class="w-[240px] h-[36px]" data-name="select-md" />
+            <component type='select' config='{"placeholder":"Large","size":{"tier":"lg"}}' class="w-[240px] h-[44px]" data-name="select-lg" />
+          </section>
+          <p class="text-[11px] font-semibold text-[#9CA3AF] leading-[16px]">DROPDOWN (手写预览)</p>
+          <section class="flex flex-col w-[240px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB;box-shadow:0 4px 12px rgba(0,0,0,0.08)" data-name="dropdown-menu">
+            <section class="flex items-center h-[32px] px-[12px] rounded-t-[8px] bg-[#F4F3FF]" data-name="dropdown-item-active"><p class="text-[12px] leading-[16px] text-[#4340EA]">Option 1</p></section>
+            <section class="flex items-center h-[32px] px-[12px]" data-name="dropdown-item"><p class="text-[12px] leading-[16px] text-[#333333]">Option 2</p></section>
+            <section class="flex items-center h-[32px] px-[12px]" data-name="dropdown-item"><p class="text-[12px] leading-[16px] text-[#333333]">Option 3</p></section>
+            <section class="h-[1px] w-full bg-[#E5E7EB]" data-name="divider"></section>
+            <section class="flex items-center h-[32px] px-[12px] rounded-b-[8px]" data-name="dropdown-item-danger"><p class="text-[12px] leading-[16px] text-[#EF4444]">Delete</p></section>
+          </section>
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[16px]" data-name="section-divider">
+        <p class="text-[16px] font-bold text-[#4340EA] leading-[24px]">Divider 分割线</p>
+        <section class="flex flex-col gap-[20px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+          <section class="flex flex-col gap-[8px]" data-name="group-divider-horizontal">
+            <p class="text-[11px] font-semibold text-[#9CA3AF] leading-[16px]">HORIZONTAL 水平</p>
+            <component type='divider' config='{"direction":"horizontal"}' class="w-full" data-name="divider-plain" />
+            <section class="flex items-center gap-[12px]" data-name="divider-text">
+              <p class="text-[11px] leading-[16px] text-[#999999]">Left</p>
+              <section class="flex-1 h-[1px] bg-[#E5E7EB]"></section>
+              <p class="text-[11px] leading-[16px] text-[#999999]">Center</p>
+              <section class="flex-1 h-[1px] bg-[#E5E7EB]"></section>
+              <p class="text-[11px] leading-[16px] text-[#999999]">Right</p>
+            </section>
+          </section>
+        </section>
+      </section>
+
+    </section>
+
+    <section class="flex items-center w-full h-[32px] pt-[8px] border-t" style="border-color:#E5E7EB" data-name="footer">
+      <p class="text-[10px] leading-[14px] text-[#9CA3AF]">Brand Purple Component Library · Generated by MasterGo MCP</p>
+    </section>
+  </section>
+</section>

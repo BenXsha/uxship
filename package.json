@@ -1,0 +1,42 @@
+{
+  "name": "uxship",
+  "version": "3.0.0",
+  "description": "uxship — local-first design-canvas agent harness: one MCP contract for MasterGo and Penpot",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "package": "node scripts/package.mjs",
+    "package:skip-build": "node scripts/package.mjs --skip-build",
+    "server:ensure": "node scripts/uxship-server.mjs ensure",
+    "server:status": "node scripts/uxship-server.mjs status",
+    "server:start": "node scripts/uxship-server.mjs start",
+    "server:stop": "node scripts/uxship-server.mjs stop",
+    "server:restart": "node scripts/uxship-server.mjs restart",
+    "pi:install-extension": "node scripts/install-pi-extension.mjs",
+    "pi:verify": "node scripts/verify-pi-hook.mjs",
+    "skill:check": "node scripts/sync-skill.mjs --check",
+    "skill:sync": "node scripts/sync-skill.mjs",
+    "license:check": "node scripts/check-licenses.mjs",
+    "docs:check": "node scripts/check-docs-links.mjs",
+    "export:public": "node scripts/export-public.mjs",
+    "build:server": "cd mcp-server && npm run build",
+    "build:plugin": "cd plugin-mastergo && yarn build",
+    "build:penpot": "cd plugin-penpot && yarn build",
+    "start": "cd mcp-server && npm start",
+    "dev": "cd mcp-server && npm run dev",
+    "install:server": "cd mcp-server && npm install",
+    "install:plugin": "cd plugin-mastergo && yarn install",
+    "install:penpot": "cd plugin-penpot && yarn install",
+    "penpot:serve": "cd plugin-penpot && node scripts/serve.mjs",
+    "penpot:test": "cd plugin-penpot && yarn test"
+  },
+  "keywords": [
+    "uxship",
+    "mcp",
+    "design",
+    "automation",
+    "ai"
+  ],
+  "author": "",
+  "license": "Apache-2.0"
+}

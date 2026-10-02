@@ -1,0 +1,26 @@
+node_modules/
+dist/
+
+.DS_Store
+*.log
+
+# Agent session runtime artifacts
+.agent-sessions/
+
+# 团队组件库索引缓存（team_library_sync 生成）
+.uxship/
+.mgpilot/
+
+# 设计管线产物与预览图（不应进仓库）
+_preview/
+tmp/
+# 服务端与验收用的临时工作目录（探针 HTML / 导出 PNG 等）
+.tmp/
+*.zip
+
+# 渲染产物：设计管线在仓库根散落的 HTML 快照
+/mcp-server/*.html
+/mcp-server/*.png
+
+# 工具缓存（vitest / pi-lens 探针会在仓库根落这个目录）
+.vitest/

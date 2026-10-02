@@ -1,0 +1,14 @@
+{
+  "name": "uxship for Penpot",
+  "description": "uxship 设计管线在 Penpot 上的宿主插件：DSL 渲染、设计令牌、组件库复用",
+  "version": 2,
+  "code": "plugin.js",
+  "icon": "icon.svg",
+  "permissions": [
+    "content:read",
+    "content:write",
+    "library:read",
+    "library:write",
+    "allow:localstorage"
+  ]
+}

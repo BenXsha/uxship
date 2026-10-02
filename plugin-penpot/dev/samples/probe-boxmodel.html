@@ -1,0 +1,42 @@
+<section data-name="ZZ Box" class="flex flex-col w-[300px] bg-[#FFFFFF]" style="font-family:'Noto Sans TC'">
+
+  <!-- 1) flex-col 无 gap、靠 margin：期望 P 高 = 12 + 40 + 40 = 92 -->
+  <section data-name="M Parent" class="flex flex-col w-[300px]">
+    <section data-name="M A" class="flex flex-col justify-center w-[300px] h-[40px] mb-[12px] bg-[#EEF2FF]">
+      <section data-name="M A Text Box" class="flex flex-col w-[300px]">
+        <p data-name="M A Text" class="w-[300px] text-[14px] leading-[20px] text-[#111827]">A</p>
+      </section>
+    </section>
+    <section data-name="M B" class="flex flex-col justify-center w-[300px] h-[40px] bg-[#EEF2FF]">
+      <section data-name="M B Text Box" class="flex flex-col w-[300px]">
+        <p data-name="M B Text" class="w-[300px] text-[14px] leading-[20px] text-[#111827]">B</p>
+      </section>
+    </section>
+  </section>
+
+  <!-- 2) flex-row items-center + 高 48 的行：子元素应 hug 到内容（约 20），不该被撑到 48 -->
+  <section data-name="R Row" class="flex flex-row items-center w-[300px] h-[48px] mt-[16px] bg-[#F1F5F9]">
+    <section data-name="R Child" class="flex flex-col w-[100px]">
+      <section data-name="R Child Text Box" class="flex flex-col w-[100px]">
+        <p data-name="R Child Text" class="w-[100px] text-[14px] leading-[20px] text-[#111827]">row</p>
+      </section>
+    </section>
+  </section>
+
+  <!-- 3) fit-content（w-fit）+ padding：期望宽 = 12 + 文本宽 + 12，而不是 0 或无穷 -->
+  <section data-name="F Wrap" class="flex flex-row w-[300px] mt-[16px]">
+    <section data-name="F Fit" class="flex flex-row w-fit h-fit p-[12px] bg-[#FEF9C3]">
+      <section data-name="F Fit Text Box" class="flex flex-col w-fit">
+        <p data-name="F Fit Text" class="w-fit text-[14px] leading-[20px] text-[#111827]">fixture</p>
+      </section>
+    </section>
+  </section>
+
+  <!-- 4) 盒模型：h-[48px] + p-[14px] 的容器里放 20px 文本 —— 高度应仍是 48（border-box） -->
+  <section data-name="B Box" class="flex flex-row items-center w-[300px] h-[48px] p-[14px] mt-[16px] bg-[#DCFCE7]">
+    <section data-name="B Text Box" class="flex flex-col w-[272px]">
+      <p data-name="B Text" class="w-[272px] text-[14px] leading-[20px] text-[#111827]">box</p>
+    </section>
+  </section>
+
+</section>

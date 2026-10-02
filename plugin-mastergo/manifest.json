@@ -1,0 +1,9 @@
+{
+  "name": "MGPilot",
+  "id": 196103200882292,
+  "main": "dist/main.js",
+  "ui": "dist/index.html",
+  "editor_type": [
+    "canvas"
+  ]
+}

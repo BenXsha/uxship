@@ -4,7 +4,9 @@
 
 A local-first design-canvas agent harness. One MCP contract that renders AI-generated design into a design tool's canvas — and reads canvas design back out to code.
 
-> **Status: pre-release.** The first public release is being prepared (de-branding, asset license audit, CI, docs). Star or watch this repo to catch it.
+> **Status: pre-release.** The MCP server, both host plugins (MasterGo + Penpot) and their test
+> suites live in this repository. English documentation and the first tagged npm release are
+> still being prepared — star or watch this repo to catch them.
 
 ---
 

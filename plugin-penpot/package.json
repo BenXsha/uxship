@@ -1,0 +1,39 @@
+{
+  "name": "@uxship/plugin-penpot",
+  "version": "3.0.0",
+  "private": true,
+  "description": "uxship host plugin for Penpot (second host adapter)",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "yarn dev:ui & yarn dev:main",
+    "dev:ui": "cross-env TARGET=ui NODE_ENV=development vite build --mode development -w",
+    "dev:main": "cross-env TARGET=main NODE_ENV=development vite build --mode development -w",
+    "build": "rm -rf dist && yarn build:ui && yarn build:main",
+    "build:ui": "cross-env TARGET=ui vite build",
+    "build:main": "cross-env TARGET=main vite build",
+    "harness:build": "cross-env TARGET=harness vite build",
+    "harness:serve": "node scripts/serve.mjs --root harness-dist --port 4406",
+    "serve": "node scripts/serve.mjs",
+    "start": "yarn build && yarn serve",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:bundle": "yarn build && node scripts/verify-bundle.mjs && node scripts/verify-bundle.mjs --full",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "diff:selection": "node scripts/diff-selection.mjs",
+    "verify:visual": "node scripts/verify-visual.mjs",
+    "harness:render": "node scripts/harness-render.mjs",
+    "ui:shot": "node scripts/ui-shot.mjs"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8",
+    "ws": "^8.16.0"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "sourceMap": false,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "allowJs": false,
+    "strict": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "removeComments": false,
+    "jsx": "preserve",
+    "importHelpers": true,
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "types": [
+      "@mastergo/plugin-typings"
+    ],
+    "paths": {
+      "@lib/*": ["./lib/*"],
+      "@ui/*": ["./ui/*"],
+      "@messages/*": ["./messages/*"]
+    }
+  },
+  "include": [
+    "./ui/**/*.ts",
+    "./ui/**/*.vue",
+    "./typings/*.d.ts",
+    "./lib/**/*.ts",
+    "./messages/**/*.ts"
+  ]
+}

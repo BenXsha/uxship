@@ -1,0 +1,302 @@
+<!-- ============================================================
+     MasterGo 设计系统 · 完整 Token 模板（13 类）
+     色板 / 字阶 / 字体 / 间距 / 圆角 / 阴影 / 材质 /
+     透明度 / Z-Index / 网格断点 / 交互 / 动效 / 组件尺寸
+     ============================================================ -->
+<section class="flex flex-col gap-[0px] bg-[#F8F9F6]" data-name="Design System Tokens">
+
+  <!-- Header -->
+  <section class="flex items-center justify-between w-full h-[72px] px-[48px] bg-[#4340EA]" data-name="header">
+    <p class="text-[22px] font-bold text-[#FFFFFF] leading-[32px]">DESIGN SYSTEM TOKENS</p>
+    <p class="text-[13px] text-[#C8C7F9] leading-[18px]">Brand Purple · v2.0</p>
+  </section>
+
+  <section class="flex flex-col w-full px-[48px] py-[24px] gap-[32px]" data-name="content">
+
+    <!-- ═══ Row 1: Colors ═══ -->
+    <section class="flex flex-row gap-[24px] w-full" data-name="row-colors">
+      <section class="flex-1 flex flex-col gap-[12px]" data-name="section-brand-colors">
+        <p class="text-[15px] font-bold text-[#4340EA]">Brand Colors 品牌色</p>
+        <section class="flex flex-col gap-[16px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+          <section class="flex flex-row gap-[16px]">
+            <section class="flex flex-col w-[100px] gap-[4px]" data-name="Brand Text">
+              <section class="w-full h-[72px] rounded-[6px] bg-[#4340EA]"></section>
+              <p class="text-[11px] text-[#6B7280]">Brand</p>
+              <p class="text-[10px] text-[#9CA3AF]">#4340EA</p>
+            </section>
+            <section class="flex flex-col w-[100px] gap-[4px]" data-name="Brand Hover">
+              <section class="w-full h-[72px] rounded-[6px] bg-[#3533C4]"></section>
+              <p class="text-[11px] text-[#6B7280]">Brand Hover</p>
+              <p class="text-[10px] text-[#9CA3AF]">#3533C4</p>
+            </section>
+            <section class="flex flex-col w-[100px] gap-[4px]" data-name="Brand Bg">
+              <section class="w-full h-[72px] rounded-[6px] bg-[#EEEDFE]"></section>
+              <p class="text-[11px] text-[#6B7280]">Brand Bg</p>
+              <p class="text-[10px] text-[#9CA3AF]">#EEEDFE</p>
+            </section>
+            <section class="flex flex-col w-[100px] gap-[4px]" data-name="Foreground">
+              <section class="w-full h-[72px] rounded-[6px] bg-[#111827]"></section>
+              <p class="text-[11px] text-[#6B7280]">Foreground</p>
+              <p class="text-[10px] text-[#9CA3AF]">#111827</p>
+            </section>
+            <section class="flex flex-col w-[100px] gap-[4px]" data-name="Background">
+              <section class="w-full h-[72px] rounded-[6px] bg-[#FFFFFF] border" style="border-color:#E5E7EB"></section>
+              <p class="text-[11px] text-[#6B7280]">Background</p>
+              <p class="text-[10px] text-[#9CA3AF]">#FFFFFF</p>
+            </section>
+          </section>
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[12px]" data-name="section-semantic">
+        <p class="text-[15px] font-bold text-[#4340EA]">Semantic 语义色</p>
+        <section class="flex flex-wrap gap-[12px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+          <section class="flex flex-col w-[100px] gap-[4px]" data-name="Success">
+            <section class="w-full h-[72px] rounded-[6px] bg-[#22C55E]"></section>
+            <p class="text-[11px] text-[#6B7280]">Success</p>
+            <p class="text-[10px] text-[#9CA3AF]">#22C55E</p>
+          </section>
+          <section class="flex flex-col w-[100px] gap-[4px]" data-name="Warning">
+            <section class="w-full h-[72px] rounded-[6px] bg-[#F59E0B]"></section>
+            <p class="text-[11px] text-[#6B7280]">Warning</p>
+            <p class="text-[10px] text-[#9CA3AF]">#F59E0B</p>
+          </section>
+          <section class="flex flex-col w-[100px] gap-[4px]" data-name="Error">
+            <section class="w-full h-[72px] rounded-[6px] bg-[#EF4444]"></section>
+            <p class="text-[11px] text-[#6B7280]">Error</p>
+            <p class="text-[10px] text-[#9CA3AF]">#EF4444</p>
+          </section>
+          <section class="flex flex-col w-[100px] gap-[4px]" data-name="Info">
+            <section class="w-full h-[72px] rounded-[6px] bg-[#3B82F6]"></section>
+            <p class="text-[11px] text-[#6B7280]">Info</p>
+            <p class="text-[10px] text-[#9CA3AF]">#3B82F6</p>
+          </section>
+        </section>
+      </section>
+    </section>
+
+    <!-- Neutral Colors -->
+    <section class="flex flex-col gap-[12px]" data-name="section-neutral">
+      <p class="text-[15px] font-bold text-[#4340EA]">Neutral 中性色</p>
+      <section class="flex flex-col gap-[12px] p-[20px] bg-[#FFFFFF] rounded-[8px] border" style="border-color:#E5E7EB">
+        <section class="flex flex-row gap-[12px]">
+          <section class="flex flex-col w-[90px] gap-[4px]" data-name="Neutral Bg">
+            <section class="w-full h-[60px] rounded-[6px] bg-[#FFFFFF] border" style="border-color:#E5E7EB"></section>
+            <p class="text-[10px] text-[#9CA3AF]">Bg</p>
+          </section>
+          <section class="flex flex-col w-[90px] gap-[4px]" data-name="Neutral Bg Hover">
+            <section class="w-full h-[60px] rounded-[6px] bg-[#F9FAFB]"></section>
+            <p class="text-[10px] text-[#9CA3AF]">Bg Hover</p>
+          </section>
+          <section class="flex flex-col w-[90px] gap-[4px]" data-name="Neutral Bg Active">
+            <section class="w-full h-[60px] rounded-[6px] bg-[#F3F4F6]"></section>
+            <p class="text-[10px] text-[#9CA3AF]">Bg Active</p>
+          </section>
+          <section class="flex flex-col w-[90px] gap-[4px]" data-name="Neutral Border">
+            <section class="w-full h-[60px] rounded-[6px] bg-[#E5E7EB]"></section>
+            <p class="text-[10px] text-[#9CA3AF]">Border</p>
+          </section>
+          <section class="flex flex-col w-[90px] gap-[4px]" data-name="Neutral Border Hover">
+            <section class="w-full h-[60px] rounded-[6px] bg-[#D0D5DD]"></section>
+            <p class="text-[10px] text-[#FFFFFF]">Border Hover</p>
+          </section>
+          <section class="flex flex-col w-[90px] gap-[4px]" data-name="Neutral Text Secondary">
+            <section class="w-full h-[60px] rounded-[6px] bg-[#6B7280]"></section>
+            <p class="text-[10px] text-[#FFFFFF]">Text Sec</p>
+          </section>
+          <section class="flex flex-col w-[90px] gap-[4px]" data-name="Neutral Text">
+            <section class="w-full h-[60px] rounded-[6px] bg-[#111827]"></section>
+            <p class="text-[10px] text-[#FFFFFF]">Text</p>
+          </section>
+        </section>
+      </section>
+    </section>
+
+    <!-- ═══ Row 2: Typography + Fonts ═══ -->
+    <section class="flex flex-row gap-[24px] w-full" data-name="row-typo">
+      <section class="flex-[2] flex flex-col gap-[12px]" data-name="section-typography">
+        <p class="text-[15px] font-bold text-[#4340EA]">Typography 字阶</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-col gap-[12px]" style="border-color:#E5E7EB">
+          <p class="text-[12px] font-semibold text-[#9CA3AF]">HEADINGS</p>
+          <section class="flex items-center gap-[16px] border-b pb-[8px]" style="border-color:#F3F4F6"><section class="w-[80px] flex-shrink-0"><p class="text-[10px] text-[#9CA3AF]">48px</p></section><p class="text-[48px] font-bold text-[#1F2937]" data-name="H1">Design System</p></section>
+          <section class="flex items-center gap-[16px] border-b pb-[8px]" style="border-color:#F3F4F6"><section class="w-[80px] flex-shrink-0"><p class="text-[10px] text-[#9CA3AF]">32px</p></section><p class="text-[32px] font-bold text-[#1F2937]" data-name="H2">Token Scale Overview</p></section>
+          <section class="flex items-center gap-[16px] border-b pb-[8px]" style="border-color:#F3F4F6"><section class="w-[80px] flex-shrink-0"><p class="text-[10px] text-[#9CA3AF]">24px</p></section><p class="text-[24px] font-bold text-[#1F2937]" data-name="H3">Purple Theme Variables</p></section>
+          <section class="flex items-center gap-[16px] border-b pb-[8px]" style="border-color:#F3F4F6"><section class="w-[80px] flex-shrink-0"><p class="text-[10px] text-[#9CA3AF]">18px</p></section><p class="text-[18px] font-semibold text-[#374151]" data-name="H4">Section Heading</p></section>
+          <p class="text-[12px] font-semibold text-[#9CA3AF] mt-[4px]">LABELS</p>
+          <section class="flex items-center gap-[16px] border-b pb-[6px]" style="border-color:#F3F4F6"><section class="w-[80px] flex-shrink-0"><p class="text-[10px] text-[#9CA3AF]">16px</p></section><p class="text-[16px] font-semibold text-[#1F2937]" data-name="Label 16">Label 16 Strong</p></section>
+          <section class="flex items-center gap-[16px] border-b pb-[6px]" style="border-color:#F3F4F6"><section class="w-[80px] flex-shrink-0"><p class="text-[10px] text-[#9CA3AF]">14px</p></section><p class="text-[14px] font-semibold text-[#374151]" data-name="Label 14">Label 14 Strong · Menu / Nav</p></section>
+          <section class="flex items-center gap-[16px] border-b pb-[6px]" style="border-color:#F3F4F6"><section class="w-[80px] flex-shrink-0"><p class="text-[10px] text-[#9CA3AF]">12px</p></section><p class="text-[12px] text-[#6B7280]" data-name="Label 12">Label 12 · Caption / Badge</p></section>
+          <p class="text-[12px] font-semibold text-[#9CA3AF] mt-[4px]">BODY</p>
+          <section class="flex items-center gap-[16px]"><section class="w-[80px] flex-shrink-0"><p class="text-[10px] text-[#9CA3AF]">14px</p></section><p class="text-[14px] text-[#4B5563]" data-name="Copy 14">The quick brown fox jumps over the lazy dog. Design tokens are the building blocks of a cohesive system.</p></section>
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[12px]" data-name="section-fonts">
+        <p class="text-[15px] font-bold text-[#4340EA]">Font Families 字体</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-col gap-[16px]" style="border-color:#E5E7EB">
+          <section class="flex flex-col gap-[8px]" data-name="Font Sans">
+            <p class="text-[11px] font-semibold text-[#6B7280]">Sans-serif (Primary)</p>
+            <section class="p-[12px] bg-[#F9FAFB] rounded-[4px]"><p class="text-[11px] text-[#4B5563] font-mono" style="font-family:monospace">'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif</p></section>
+          </section>
+          <section class="flex flex-col gap-[8px]" data-name="Font Mono">
+            <p class="text-[11px] font-semibold text-[#6B7280]">Monospace (Code)</p>
+            <section class="p-[12px] bg-[#F9FAFB] rounded-[4px]"><p class="text-[11px] text-[#4B5563] font-mono" style="font-family:monospace">'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace</p></section>
+          </section>
+        </section>
+      </section>
+    </section>
+
+    <!-- ═══ Row 3: Spacing + Radius + Shadows + Materials ═══ -->
+    <section class="flex flex-row gap-[24px] w-full" data-name="row-visual">
+      <section class="flex-1 flex flex-col gap-[12px]" data-name="section-spacing">
+        <p class="text-[15px] font-bold text-[#4340EA]">Spacing 间距</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-col gap-[12px]" style="border-color:#E5E7EB">
+          <section class="flex items-center gap-[16px]" data-name="Space 4"><section class="flex items-center gap-[4px]"><section class="w-[16px] h-[16px] rounded-[2px] bg-[#4340EA]"></section><section class="w-[16px] h-[16px] rounded-[2px] bg-[#3533C4]"></section></section><p class="text-[11px] text-[#6B7280]">4px — xs</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Space 8"><section class="flex items-center gap-[8px]"><section class="w-[16px] h-[16px] rounded-[2px] bg-[#4340EA]"></section><section class="w-[16px] h-[16px] rounded-[2px] bg-[#3533C4]"></section></section><p class="text-[11px] text-[#6B7280]">8px — sm</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Space 12"><section class="flex items-center gap-[12px]"><section class="w-[16px] h-[16px] rounded-[2px] bg-[#4340EA]"></section><section class="w-[16px] h-[16px] rounded-[2px] bg-[#3533C4]"></section></section><p class="text-[11px] text-[#6B7280]">12px — compact</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Space 16"><section class="flex items-center gap-[16px]"><section class="w-[16px] h-[16px] rounded-[2px] bg-[#4340EA]"></section><section class="w-[16px] h-[16px] rounded-[2px] bg-[#3533C4]"></section></section><p class="text-[11px] text-[#6B7280]">16px — md</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Space 24"><section class="flex items-center gap-[24px]"><section class="w-[16px] h-[16px] rounded-[2px] bg-[#4340EA]"></section><section class="w-[16px] h-[16px] rounded-[2px] bg-[#3533C4]"></section></section><p class="text-[11px] text-[#6B7280]">24px — lg</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Space 32"><section class="flex items-center gap-[32px]"><section class="w-[16px] h-[16px] rounded-[2px] bg-[#3533C4]"></section><section class="w-[16px] h-[16px] rounded-[2px] bg-[#4340EA]"></section></section><p class="text-[11px] text-[#6B7280]">32px — xl</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Space 48"><section class="flex items-center gap-[48px]"><section class="w-[16px] h-[16px] rounded-[2px] bg-[#3533C4]"></section><section class="w-[16px] h-[16px] rounded-[2px] bg-[#4340EA]"></section></section><p class="text-[11px] text-[#6B7280]">48px — 2xl</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Space 64"><section class="flex items-center gap-[64px]"><section class="w-[16px] h-[16px] rounded-[2px] bg-[#3533C4]"></section><section class="w-[16px] h-[16px] rounded-[2px] bg-[#4340EA]"></section></section><p class="text-[11px] text-[#6B7280]">64px — 3xl</p></section>
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[12px]" data-name="section-radius">
+        <p class="text-[15px] font-bold text-[#4340EA]">Border Radius 圆角</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-col gap-[10px]" style="border-color:#E5E7EB">
+          <section class="flex items-center gap-[16px]" data-name="Radius 2"><section class="w-[48px] h-[48px] rounded-[2px] bg-[#4340EA] flex-shrink-0"></section><p class="text-[11px] text-[#6B7280]">2px — sm / tooltip</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Radius 4"><section class="w-[48px] h-[48px] rounded-[4px] bg-[#4340EA] flex-shrink-0"></section><p class="text-[11px] text-[#6B7280]">4px — md / input</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Radius 6"><section class="w-[48px] h-[48px] rounded-[6px] bg-[#4340EA] flex-shrink-0"></section><p class="text-[11px] text-[#6B7280]">6px — lg / button</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Radius 8"><section class="w-[48px] h-[48px] rounded-[8px] bg-[#3533C4] flex-shrink-0"></section><p class="text-[11px] text-[#6B7280]">8px — xl / card</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Radius 12"><section class="w-[48px] h-[48px] rounded-[12px] bg-[#3533C4] flex-shrink-0"></section><p class="text-[11px] text-[#6B7280]">12px — 2xl / modal</p></section>
+          <section class="flex items-center gap-[16px]" data-name="Radius Full"><section class="w-[48px] h-[48px] rounded-full bg-[#3533C4] flex-shrink-0"></section><p class="text-[11px] text-[#6B7280]">9999px — full / pill</p></section>
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[12px]" data-name="section-shadows">
+        <p class="text-[15px] font-bold text-[#4340EA]">Shadows 阴影</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-col gap-[12px]" style="border-color:#E5E7EB">
+          <section class="w-full h-[72px] rounded-[8px] bg-[#FFFFFF] flex flex-col justify-center gap-[2px] p-[16px]" style="box-shadow:0 1px 2px rgba(0,0,0,0.05)" data-name="Shadow sm"><p class="text-[12px] font-semibold text-[#374151]">SM · Surface</p><p class="text-[10px] text-[#9CA3AF]">0 1px 2px · cards, buttons</p></section>
+          <section class="w-full h-[72px] rounded-[8px] bg-[#FFFFFF] flex flex-col justify-center gap-[2px] p-[16px]" style="box-shadow:0 4px 6px rgba(0,0,0,0.07)" data-name="Shadow md"><p class="text-[12px] font-semibold text-[#374151]">MD · Floating</p><p class="text-[10px] text-[#9CA3AF]">0 4px 6px · dropdowns, menus</p></section>
+          <section class="w-full h-[72px] rounded-[8px] bg-[#FFFFFF] flex flex-col justify-center gap-[2px] p-[16px]" style="box-shadow:0 10px 25px rgba(0,0,0,0.10)" data-name="Shadow lg"><p class="text-[12px] font-semibold text-[#374151]">LG · Overlay</p><p class="text-[10px] text-[#9CA3AF]">0 10px 25px · modals, dialogs</p></section>
+          <section class="w-full h-[72px] rounded-[8px] bg-[#FFFFFF] flex flex-col justify-center gap-[2px] p-[16px]" style="box-shadow:0 20px 25px rgba(0,0,0,0.15)" data-name="Shadow xl"><p class="text-[12px] font-semibold text-[#374151]">XL · Dialog</p><p class="text-[10px] text-[#9CA3AF]">0 20px 25px · notifications</p></section>
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[12px]" data-name="section-materials">
+        <p class="text-[15px] font-bold text-[#4340EA]">Materials 材质</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-col gap-[12px]" style="border-color:#E5E7EB">
+          <p class="text-[11px] font-semibold text-[#9CA3AF]">SURFACE</p>
+          <section class="w-full h-[56px] rounded-[8px] bg-[#FFFFFF] border flex items-center px-[16px]" style="border-color:#E5E7EB" data-name="Surface Material 1"><p class="text-[11px] text-[#374151]">Surface 1 · default panel</p></section>
+          <section class="w-full h-[56px] rounded-[8px] bg-[#F9FAFB] border flex items-center px-[16px]" style="border-color:#E5E7EB" data-name="Surface Material 2"><p class="text-[11px] text-[#374151]">Surface 2 · hover / secondary</p></section>
+          <p class="text-[11px] font-semibold text-[#9CA3AF] mt-[4px]">FLOATING</p>
+          <section class="w-full h-[56px] rounded-[8px] bg-[#FFFFFF] flex items-center px-[16px]" style="box-shadow:0 4px 12px rgba(0,0,0,0.08)" data-name="Floating Material 1"><p class="text-[11px] text-[#374151]">Floating 1 · dropdown</p></section>
+          <section class="w-full h-[56px] rounded-[8px] bg-[#FFFFFF] flex items-center px-[16px]" style="box-shadow:0 12px 24px rgba(0,0,0,0.12)" data-name="Floating Material 2"><p class="text-[11px] text-[#374151]">Floating 2 · modal / toast</p></section>
+        </section>
+      </section>
+    </section>
+
+    <!-- ═══ Row 4: Opacity + Z-Index + Grid + Interaction ═══ -->
+    <section class="flex flex-row gap-[24px] w-full" data-name="row-meta">
+      <section class="flex-1 flex flex-col gap-[12px]" data-name="section-opacity">
+        <p class="text-[15px] font-bold text-[#4340EA]">Opacity 透明度</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-wrap gap-[12px]" style="border-color:#E5E7EB">
+          <section class="flex flex-col items-center gap-[6px]" data-name="Opacity 100"><section class="w-[48px] h-[48px] rounded-[6px] bg-[#1A1A2E]"></section><p class="text-[10px] text-[#9CA3AF]">100%</p></section>
+          <section class="flex flex-col items-center gap-[6px]" data-name="Opacity 80"><section class="w-[48px] h-[48px] rounded-[6px]" style="background:rgba(26,26,46,0.8)"></section><p class="text-[10px] text-[#9CA3AF]">80% · hover</p></section>
+          <section class="flex flex-col items-center gap-[6px]" data-name="Opacity 60"><section class="w-[48px] h-[48px] rounded-[6px]" style="background:rgba(26,26,46,0.6)"></section><p class="text-[10px] text-[#9CA3AF]">60% · loading</p></section>
+          <section class="flex flex-col items-center gap-[6px]" data-name="Opacity 38"><section class="w-[48px] h-[48px] rounded-[6px]" style="background:rgba(26,26,46,0.38)"></section><p class="text-[10px] text-[#9CA3AF]">38% · disabled</p></section>
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[12px]" data-name="section-zindex">
+        <p class="text-[15px] font-bold text-[#4340EA]">Z-Index 层级</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-col gap-[10px]" style="border-color:#E5E7EB">
+          <section class="flex items-center justify-between h-[36px] px-[12px] rounded-[4px] bg-[#F9FAFB]" data-name="ZIndex Dropdown"><p class="text-[11px] text-[#374151]">Dropdown</p><p class="text-[11px] font-mono text-[#9CA3AF]">z-index: 100</p></section>
+          <section class="flex items-center justify-between h-[36px] px-[12px] rounded-[4px] bg-[#EEEDFE]" data-name="ZIndex Modal"><p class="text-[11px] text-[#374151]">Modal</p><p class="text-[11px] font-mono text-[#9CA3AF]">z-index: 1000</p></section>
+          <section class="flex items-center justify-between h-[36px] px-[12px] rounded-[4px] bg-[#E0DFFF]" data-name="ZIndex Tooltip"><p class="text-[11px] text-[#374151]">Tooltip</p><p class="text-[11px] font-mono text-[#9CA3AF]">z-index: 2000</p></section>
+        </section>
+      </section>
+
+      <section class="flex-[2] flex flex-col gap-[12px]" data-name="section-grid">
+        <p class="text-[15px] font-bold text-[#4340EA]">Grid 网格</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-col gap-[12px]" style="border-color:#E5E7EB">
+          <p class="text-[11px] font-semibold text-[#9CA3AF]">CONTAINER WIDTHS</p>
+          <section class="flex flex-col gap-[6px]">
+            <section class="flex items-center h-[24px] px-[10px] rounded-[3px] bg-[#EEEDFE]" style="width:480px"><p class="text-[10px] text-[#6B7280]">480px · SM</p></section>
+            <section class="flex items-center h-[24px] px-[10px] rounded-[3px] bg-[#E0DFFF]" style="width:580px"><p class="text-[10px] text-[#6B7280]">768px · MD</p></section>
+            <section class="flex items-center h-[24px] px-[10px] rounded-[3px] bg-[#C8C7F9]" style="width:680px"><p class="text-[10px] text-[#6B7280]">1024px · LG</p></section>
+            <section class="flex items-center h-[24px] px-[10px] rounded-[3px] bg-[#A8A7F5]" style="width:780px"><p class="text-[10px] text-[#4340EA]">1280px · XL</p></section>
+          </section>
+          <p class="text-[11px] font-semibold text-[#9CA3AF] mt-[4px]">12-COLUMN GRID (gutter 12px)</p>
+          <section class="flex flex-row gap-[12px]"><section class="flex-1 h-[24px] rounded-[3px] bg-[#4340EA]"></section><section class="flex-1 h-[24px] rounded-[3px] bg-[#3533C4]"></section><section class="flex-1 h-[24px] rounded-[3px] bg-[#4340EA]"></section><section class="flex-1 h-[24px] rounded-[3px] bg-[#3533C4]"></section></section>
+          <section class="flex flex-row gap-[12px]"><section class="flex-[3] h-[20px] rounded-[3px] bg-[#3533C4]"></section><section class="flex-[9] h-[20px] rounded-[3px] bg-[#4340EA]"></section></section>
+        </section>
+      </section>
+
+      <section class="flex-1 flex flex-col gap-[12px]" data-name="section-interaction">
+        <p class="text-[15px] font-bold text-[#4340EA]">Interaction 交互</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-col gap-[12px]" style="border-color:#E5E7EB">
+          <p class="text-[11px] font-semibold text-[#9CA3AF]">FOCUS RING</p>
+          <section class="flex flex-row gap-[8px]">
+            <section class="flex-1 h-[36px] rounded-[6px] border-2 border-[#4340EA] flex items-center justify-center" style="outline:2px solid #4340EA;outline-offset:2px"><p class="text-[10px] text-[#4340EA]">Focus</p></section>
+            <section class="flex-1 h-[36px] rounded-[6px] border flex items-center justify-center" style="border-color:#D0D5DD"><p class="text-[10px] text-[#9CA3AF]">Default</p></section>
+          </section>
+          <p class="text-[11px] font-semibold text-[#9CA3AF] mt-[4px]">INPUT HEIGHTS</p>
+          <section class="flex flex-row items-end gap-[8px]">
+            <section class="flex-1 flex items-center h-[32px] px-[10px] rounded-[4px] border" style="border-color:#D0D5DD;font-size:10px" data-name="Input SM">sm 32px</section>
+            <section class="flex-1 flex items-center h-[36px] px-[10px] rounded-[4px] border" style="border-color:#4340EA;font-size:11px;color:#4340EA" data-name="Input MD">md 36px</section>
+            <section class="flex-1 flex items-center h-[44px] px-[10px] rounded-[6px] border" style="border-color:#D0D5DD;font-size:12px" data-name="Input LG">lg 44px</section>
+          </section>
+        </section>
+      </section>
+    </section>
+
+    <!-- ═══ Row 5: Motion + Component Sizing ═══ -->
+    <section class="flex flex-row gap-[24px] w-full" data-name="row-motion">
+      <section class="flex-1 flex flex-col gap-[12px]" data-name="section-motion">
+        <p class="text-[15px] font-bold text-[#4340EA]">Motion 动效</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-col gap-[12px]" style="border-color:#E5E7EB">
+          <p class="text-[11px] font-semibold text-[#9CA3AF]">DURATION</p>
+          <section class="flex flex-row gap-[8px]">
+            <section class="flex-1 flex items-center justify-center h-[32px] rounded-[4px] bg-[#EEEDFE]"><p class="text-[10px] text-[#4340EA]" data-name="Duration Fast">150ms fast</p></section>
+            <section class="flex-1 flex items-center justify-center h-[32px] rounded-[4px] bg-[#E0DFFF]"><p class="text-[10px] text-[#4340EA]" data-name="Duration Normal">250ms normal</p></section>
+            <section class="flex-1 flex items-center justify-center h-[32px] rounded-[4px] bg-[#C8C7F9]"><p class="text-[10px] text-[#4340EA]" data-name="Duration Slow">400ms slow</p></section>
+          </section>
+          <p class="text-[11px] font-semibold text-[#9CA3AF] mt-[4px]">EASING</p>
+          <section class="flex flex-row gap-[8px]">
+            <section class="flex-1 flex items-center justify-center h-[28px] rounded-[4px] bg-[#F9FAFB]"><p class="text-[10px] text-[#6B7280]" data-name="Easing In">ease-in</p></section>
+            <section class="flex-1 flex items-center justify-center h-[28px] rounded-[4px] bg-[#F3F4F6]"><p class="text-[10px] text-[#6B7280]" data-name="Easing Out">ease-out</p></section>
+            <section class="flex-1 flex items-center justify-center h-[28px] rounded-[4px] bg-[#E5E7EB]"><p class="text-[10px] text-[#6B7280]" data-name="Easing InOut">ease-in-out</p></section>
+          </section>
+        </section>
+      </section>
+
+      <section class="flex-[2] flex flex-col gap-[12px]" data-name="section-sizing">
+        <p class="text-[15px] font-bold text-[#4340EA]">Component Sizing 组件尺寸</p>
+        <section class="w-full p-[20px] bg-[#FFFFFF] rounded-[8px] border flex flex-col gap-[12px]" style="border-color:#E5E7EB">
+          <p class="text-[11px] font-semibold text-[#9CA3AF]">BUTTONS</p>
+          <section class="flex flex-row items-center gap-[12px]">
+            <section class="flex items-center justify-center h-[28px] px-[12px] rounded-[4px] bg-[#4340EA]"><p class="text-[11px] font-bold text-[#FFFFFF]">sm</p></section>
+            <section class="flex items-center justify-center h-[36px] px-[16px] rounded-[6px] bg-[#4340EA]"><p class="text-[13px] font-bold text-[#FFFFFF]">md</p></section>
+            <section class="flex items-center justify-center h-[44px] px-[24px] rounded-[8px] bg-[#4340EA]"><p class="text-[15px] font-bold text-[#FFFFFF]">lg</p></section>
+          </section>
+          <p class="text-[11px] font-semibold text-[#9CA3AF] mt-[4px]">TOGGLE · BADGE</p>
+          <section class="flex flex-row items-center gap-[16px]">
+            <section class="rounded-full bg-[#E5E7EB]" style="width:36px;height:20px"></section>
+            <section class="rounded-full bg-[#4340EA]" style="width:48px;height:24px"></section>
+            <section class="rounded-full bg-[#4340EA]" style="width:60px;height:30px"></section>
+            <section class="flex items-center justify-center h-[18px] px-[6px] rounded-full bg-[#EEEDFE]"><p class="text-[9px] font-bold text-[#4340EA]">sm</p></section>
+            <section class="flex items-center justify-center h-[22px] px-[8px] rounded-full bg-[#EEEDFE]"><p class="text-[10px] font-bold text-[#4340EA]">md</p></section>
+            <section class="flex items-center justify-center h-[28px] px-[10px] rounded-full bg-[#EEEDFE]"><p class="text-[11px] font-bold text-[#4340EA]">lg</p></section>
+          </section>
+        </section>
+      </section>
+    </section>
+
+    <!-- Footer -->
+    <section class="flex items-center w-full h-[36px] pt-[8px] border-t" style="border-color:#E5E7EB" data-name="footer">
+      <p class="text-[10px] text-[#9CA3AF]">Brand Purple Design System · 13 token categories · Generated by MasterGo MCP</p>
+    </section>
+  </section>
+</section>

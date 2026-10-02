@@ -1,0 +1,164 @@
+<!--
+  端到端复现样例：一页登录页（1440×900）
+
+  用途：把「HTML+Tailwind → 引擎实测像素 → DSL → Penpot 画布」整条链真机跑一遍，
+  然后用 plugin-penpot 的离线仪器核对结果（见 README「三个离线仪器」）：
+
+    cd plugin-penpot
+    yarn verify:visual --node <渲染结果的 rootId>   # 逐框量墨迹：跑位 / 被裁 / 空框
+    yarn harness:render dev/samples/login-page.html  # 只看引擎产出的 DSL（二分责任方）
+
+  这份样例刻意覆盖了真机上翻过车的几类：
+    - 左右分栏 + 渐变背景 + 卡片阴影（渐变、阴影、圆角）
+    - `data-icon` 图标（Iconify 内联 SVG → 原生 Path）
+    - 文本包裹层 + 横向行内居中（盒模型/preflight：content-box 与 <p> 默认 margin）
+    - 字重与中文字族（fontName 是否真被宿主接受）
+
+  渲染前置：Penpot 里装好本插件（manifest 见 README），服务端与本仓库版本一致。
+  历史缺陷与实测数字见 内部笔记 §14。
+-->
+<section data-name="Login Page" class="flex flex-row w-[1440px] h-[900px] bg-[#0B1220]" style="font-family:'Noto Sans TC'">
+
+  <!-- ==================== 左：品牌区 ==================== -->
+  <section data-name="Brand Panel" class="flex flex-col justify-between w-[720px] h-[900px] px-[64px] py-[72px] bg-[linear-gradient(140deg,#1E1B4B,#312E81,#0B1220)]">
+
+    <section data-name="Brand Head" class="flex flex-row items-center w-[592px] gap-[12px]">
+      <i data-icon="ri:shield-keyhole-line" data-name="Logo Mark" class="w-[36px] h-[36px] text-[#A5B4FC]"></i>
+      <section data-name="Brand Name Box" class="flex flex-col w-[240px]">
+        <p data-name="Brand Name" class="w-[240px] text-[20px] font-[700] leading-[28px] text-[#F8FAFC]">CloudGate 云枢</p>
+      </section>
+    </section>
+
+    <section data-name="Headline" class="flex flex-col w-[592px] gap-[20px]">
+      <section data-name="Title Box" class="flex flex-col w-[592px]">
+        <p data-name="Title" class="w-[592px] text-[44px] font-[700] leading-[56px] text-[#F8FAFC]">安全连接，从这里开始</p>
+      </section>
+      <section data-name="Subtitle Box" class="flex flex-col w-[560px]">
+        <p data-name="Subtitle" class="w-[560px] text-[16px] leading-[26px] text-[#A5B4FC]">统一身份认证、单点登录与多因子验证，为团队提供零信任访问入口。</p>
+      </section>
+    </section>
+
+    <section data-name="Feature List" class="flex flex-col w-[592px] gap-[20px]">
+      <section data-name="Feature SSO" class="flex flex-row items-center w-[592px] gap-[14px]">
+        <i data-icon="ri:fingerprint-line" data-name="Icon SSO" class="w-[22px] h-[22px] text-[#818CF8]"></i>
+        <section data-name="Text Box SSO" class="flex flex-col w-[556px]">
+          <p data-name="Text SSO" class="w-[556px] text-[14px] leading-[20px] text-[#E2E8F0]">一次登录，通行全部接入系统</p>
+        </section>
+      </section>
+      <section data-name="Feature MFA" class="flex flex-row items-center w-[592px] gap-[14px]">
+        <i data-icon="ri:shield-check-line" data-name="Icon MFA" class="w-[22px] h-[22px] text-[#818CF8]"></i>
+        <section data-name="Text Box MFA" class="flex flex-col w-[556px]">
+          <p data-name="Text MFA" class="w-[556px] text-[14px] leading-[20px] text-[#E2E8F0]">硬件密钥与动态口令双重保护</p>
+        </section>
+      </section>
+      <section data-name="Feature Device" class="flex flex-row items-center w-[592px] gap-[14px]">
+        <i data-icon="ri:devices-line" data-name="Icon Device" class="w-[22px] h-[22px] text-[#818CF8]"></i>
+        <section data-name="Text Box Device" class="flex flex-col w-[556px]">
+          <p data-name="Text Device" class="w-[556px] text-[14px] leading-[20px] text-[#E2E8F0]">设备可信评估，异常登录实时告警</p>
+        </section>
+      </section>
+    </section>
+
+    <section data-name="Brand Footer" class="flex flex-col w-[592px]">
+      <p data-name="Copyright" class="w-[592px] text-[12px] leading-[18px] text-[#A5B4FC]">© 2026 CloudGate Inc. · 保留所有权利</p>
+    </section>
+
+  </section>
+
+  <!-- ==================== 右：表单区 ==================== -->
+  <section data-name="Form Panel" class="flex flex-col items-center justify-center w-[720px] h-[900px] gap-[24px] bg-[#F1F5F9]">
+
+    <section data-name="Login Card" class="flex flex-col w-[440px] gap-[24px] p-[40px] rounded-[20px] bg-[#FFFFFF] shadow-[0_24px_64px_rgba(15,23,42,0.10)]">
+
+      <section data-name="Card Head" class="flex flex-col w-[360px] gap-[8px]">
+        <section data-name="Card Title Box" class="flex flex-col justify-center w-[360px]">
+          <p data-name="Card Title" class="w-[360px] text-[26px] font-[700] leading-[34px] text-[#0F172A]">欢迎回来</p>
+        </section>
+        <section data-name="Card Subtitle Box" class="flex flex-col w-[360px]">
+          <p data-name="Card Subtitle" class="w-[360px] text-[14px] leading-[22px] text-[#64748B]">请使用企业账号登录以继续</p>
+        </section>
+      </section>
+
+      <section data-name="Fields" class="flex flex-col w-[360px] gap-[18px]">
+
+        <section data-name="Email Field" class="flex flex-col w-[360px] gap-[8px]">
+          <section data-name="Email Label Box" class="flex flex-col w-[360px]">
+            <p data-name="Email Label" class="w-[360px] text-[13px] font-[500] leading-[20px] text-[#334155]">邮箱 / 手机号</p>
+          </section>
+          <section data-name="Email Input" class="flex flex-row items-center w-[360px] h-[48px] gap-[10px] px-[14px] rounded-[10px] bg-[#F8FAFC] border-[1px] border-[#E2E8F0]">
+            <i data-icon="ri:mail-line" data-name="Email Icon" class="w-[18px] h-[18px] text-[#94A3B8]"></i>
+            <section data-name="Email Value Box" class="flex flex-col justify-center w-[290px]">
+              <p data-name="Email Value" class="w-[290px] text-[14px] leading-[20px] text-[#0F172A]">admin@cloudgate.io</p>
+            </section>
+          </section>
+        </section>
+
+        <section data-name="Password Field" class="flex flex-col w-[360px] gap-[8px]">
+          <section data-name="Password Label Box" class="flex flex-col w-[360px]">
+            <p data-name="Password Label" class="w-[360px] text-[13px] font-[500] leading-[20px] text-[#334155]">密码</p>
+          </section>
+          <section data-name="Password Input" class="flex flex-row items-center w-[360px] h-[48px] gap-[10px] px-[14px] rounded-[10px] bg-[#F8FAFC] border-[1px] border-[#4F46E5]">
+            <i data-icon="ri:lock-line" data-name="Lock Icon" class="w-[18px] h-[18px] text-[#4F46E5]"></i>
+            <section data-name="Password Value Box" class="flex flex-col justify-center w-[280px]">
+              <p data-name="Password Value" class="w-[280px] text-[14px] leading-[20px] text-[#0F172A]">••••••••••</p>
+            </section>
+            <i data-icon="ri:eye-off-line" data-name="Toggle Visibility" class="w-[18px] h-[18px] text-[#94A3B8]"></i>
+          </section>
+        </section>
+
+      </section>
+
+      <section data-name="Options Row" class="flex flex-row items-center justify-between w-[360px]">
+        <section data-name="Remember Me" class="flex flex-row items-center w-[176px] gap-[8px]">
+          <section data-name="Checkbox Box" class="flex flex-row items-center justify-center w-[16px] h-[16px] rounded-[4px] bg-[#4F46E5]">
+            <i data-icon="ri:check-line" data-name="Check Mark" class="w-[12px] h-[12px] text-[#FFFFFF]"></i>
+          </section>
+          <section data-name="Remember Label Box" class="flex flex-col justify-center w-[152px]">
+            <p data-name="Remember Label" class="w-[152px] text-[13px] leading-[20px] text-[#475569]">记住这台设备</p>
+          </section>
+        </section>
+        <section data-name="Forgot Link Box" class="flex flex-col w-[92px]">
+          <p data-name="Forgot Link" class="w-[92px] text-[13px] font-[500] leading-[20px] text-[#4F46E5]">忘记密码？</p>
+        </section>
+      </section>
+
+      <section data-name="Submit Button" class="flex flex-row items-center justify-center w-[360px] h-[48px] rounded-[10px] bg-[#4F46E5]">
+        <section data-name="Submit Label Box" class="flex flex-col justify-center w-[64px]">
+          <p data-name="Submit Label" class="w-[64px] text-[15px] font-[600] leading-[22px] text-[#FFFFFF]">登录</p>
+        </section>
+      </section>
+
+      <section data-name="Divider Row" class="flex flex-row items-center w-[360px] gap-[12px]">
+        <div data-name="Divider Line Left" class="w-[150px] h-[1px] bg-[#E2E8F0]"></div>
+        <section data-name="Divider Label Box" class="flex flex-col items-center justify-center w-[36px]">
+          <p data-name="Divider Label" class="w-[20px] text-[12px] leading-[18px] text-[#94A3B8]">或</p>
+        </section>
+        <div data-name="Divider Line Right" class="w-[150px] h-[1px] bg-[#E2E8F0]"></div>
+      </section>
+
+      <section data-name="Social Row" class="flex flex-row items-center w-[360px] gap-[12px]">
+        <section data-name="Social Wechat" class="flex flex-row items-center justify-center w-[174px] h-[44px] gap-[8px] rounded-[10px] bg-[#FFFFFF] border-[1px] border-[#E2E8F0]">
+          <i data-icon="ri:wechat-fill" data-name="Wechat Icon" class="w-[18px] h-[18px] text-[#07C160]"></i>
+          <section data-name="Wechat Label Box" class="flex flex-col justify-center w-[86px]">
+            <p data-name="Wechat Label" class="w-[86px] text-[13px] leading-[20px] text-[#334155]">企业微信登录</p>
+          </section>
+        </section>
+        <section data-name="Social SSO" class="flex flex-row items-center justify-center w-[174px] h-[44px] gap-[8px] rounded-[10px] bg-[#FFFFFF] border-[1px] border-[#E2E8F0]">
+          <i data-icon="ri:key-2-line" data-name="SSO Icon" class="w-[18px] h-[18px] text-[#64748B]"></i>
+          <section data-name="SSO Label Box" class="flex flex-col justify-center w-[86px]">
+            <p data-name="SSO Label" class="w-[86px] text-[13px] leading-[20px] text-[#334155]">企业 SSO</p>
+          </section>
+        </section>
+      </section>
+
+    </section>
+
+    <section data-name="Form Footer" class="flex flex-col items-center w-[440px] gap-[4px]">
+      <section data-name="Footer Hint Box" class="flex flex-col w-[440px]">
+        <p data-name="Footer Hint" class="w-[440px] text-[12px] leading-[18px] text-[#64748B]">登录即代表同意《服务条款》与《隐私政策》</p>
+      </section>
+    </section>
+
+  </section>
+
+</section>
