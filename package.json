@@ -34,7 +34,8 @@
     "install:plugin": "cd plugin-mastergo && yarn install",
     "install:penpot": "cd plugin-penpot && yarn install",
     "penpot:serve": "cd plugin-penpot && node scripts/serve.mjs",
-    "penpot:test": "cd plugin-penpot && yarn test"
+    "penpot:test": "cd plugin-penpot && yarn test",
+    "bench:context": "node scripts/benchmark-context.mjs"
   },
   "keywords": [
     "uxship",
