@@ -2,7 +2,7 @@ import type { MCPTool } from '../../types/mcp-types.js'
 
 const getDocumentInfoTool: MCPTool = {
   name: 'document_get_info',
-  description: '获取当前 MasterGo 文档的基本信息，包括文件名、页面数量等',
+  description: '获取当前设计文档的基本信息，包括文件名、页面数量等',
   inputSchema: {
     type: 'object',
     properties: {},

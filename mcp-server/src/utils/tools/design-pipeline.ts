@@ -55,7 +55,7 @@ const exportNodeTool: MCPTool = {
 
 const designToCodeTool: MCPTool = {
   name: 'design_to_code',
-  description: '将 MasterGo DSL JSON 转换为可直接使用的格式。输入为 DSL 文档对象（由 dsl_exportSelection 或 dsl_exportNode 导出）或 nodeId（服务端自行调插件导出）。返回原始 DSL + SVG 资产，AI 直读渲染。支持 exportSvgs 选项导出图标文件。',
+  description: '将 DSL JSON 转换为可直接使用的格式。输入为 DSL 文档对象（由 dsl_exportSelection 或 dsl_exportNode 导出）或 nodeId（服务端自行调插件导出）。返回原始 DSL + SVG 资产，AI 直读渲染。支持 exportSvgs 选项导出图标文件。',
   inputSchema: {
     type: 'object',
     properties: {

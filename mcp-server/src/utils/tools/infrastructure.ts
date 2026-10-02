@@ -47,7 +47,7 @@ const selectionSetTool: MCPTool = {
 const pluginCapabilitiesTool: MCPTool = {
   name: 'plugin_capabilities',
   description:
-    '探测宿主（MasterGo 客户端）插件 API 版本与能力开关（teamLibrary / node / export / variables / misc 各新 API 的运行时可用性）。接入任何新插件 API 前先调用：typings 只是声明，实际支持取决于客户端版本。',
+    '探测宿主（MasterGo / Penpot）插件 API 版本与能力开关（teamLibrary / node / export / variables / misc 各新 API 的运行时可用性）。接入任何新插件 API 前先调用：typings 只是声明，实际支持取决于客户端版本。',
   inputSchema: { type: 'object', properties: {} },
 }
 
@@ -152,7 +152,7 @@ const taskCompleteTool: MCPTool = {
 
 const sessionListTool: MCPTool = {
   name: 'session_list',
-  description: '列出当前所有已连接的 MasterGo 插件会话，每个会话对应一个打开的设计文档。返回每个会话的 sessionId、文档信息、页面信息和连接时间。在生成新设计前应先调用此工具了解可用文档。',
+  description: '列出当前所有已连接的插件会话，每个会话对应一个打开的设计文档。返回每个会话的 sessionId、backend（mastergo / penpot）、文档信息、页面信息和连接时间。在生成新设计前应先调用此工具了解可用文档。',
   inputSchema: { type: 'object', properties: {} },
 }
 
@@ -195,7 +195,7 @@ const serverVersionTool: MCPTool = {
 
 const getGuidelinesTool: MCPTool = {
   name: 'get_guidelines',
-  description: '获取 MasterGo 设计规则文档。AI 在设计前应调用此工具加载相关规则，确保生成的 HTML+Tailwind 符合设计系统规范。支持按 topic 过滤（如 layout/chart/dsl/design/quickstart/pitfalls），不传 topic 返回全部规则的索引',
+  description: '获取设计规则文档。AI 在设计前应调用此工具加载相关规则，确保生成的 HTML+Tailwind 符合设计系统规范。支持按 topic 过滤（如 layout/chart/dsl/design/quickstart/pitfalls），不传 topic 返回全部规则的索引',
   inputSchema: {
     type: 'object',
     properties: {

@@ -2,7 +2,7 @@ import type { MCPTool } from '../../types/mcp-types.js'
 
 const teamLibraryListTool: MCPTool = {
   name: 'team_library_list',
-  description: '列出团队组件库（团队库 / 团队组件库）及其内容概览：库名、组件数、样式数。数据来自团队库索引缓存（.uxship/team-library.json），缓存缺失或过期时自动向 MasterGo 插件拉取。生成设计前先调用它了解可用团队资产，再用 team_component_search 找到具体组件的 ukey，最后用 team_component_import 实例化到画布。',
+  description: '列出团队组件库（团队库 / 团队组件库）及其内容概览：库名、组件数、样式数。数据来自团队库索引缓存（.uxship/team-library.json），缓存缺失或过期时自动向插件拉取。生成设计前先调用它了解可用团队资产，再用 team_component_search 找到具体组件的 ukey，最后用 team_component_import 实例化到画布。',
   inputSchema: {
     type: 'object',
     properties: {

@@ -35,7 +35,7 @@ const iconRenderTool: MCPTool = {
 
 const libraryRegisterStylesTool: MCPTool = {
   name: 'library_register_styles',
-  description: '从 Token 面板的节点树中提取设计令牌，创建为 MasterGo 原生样式（Paint/Text/Effect/Spacing Style）。在 code_to_design 渲染 Token 面板后调用此工具，将视觉令牌注册到样式库中，后续可通过 getLocalPaintStyles() 等 API 读取。返回创建的样式列表。',
+  description: '从 Token 面板的节点树中提取设计令牌，创建为宿主原生样式（Paint/Text/Effect/Spacing Style）。在 code_to_design 渲染 Token 面板后调用此工具，将视觉令牌注册到样式库中，后续可通过 getLocalPaintStyles() 等 API 读取。返回创建的样式列表。',
   inputSchema: {
     type: 'object',
     properties: {
