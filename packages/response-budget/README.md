@@ -32,26 +32,36 @@ if (budget?.truncated) {
 
 ### Before / after
 
-A 500-node search result, budget 24 000 chars:
+A 500-node search result, default budget (24 000 chars). These numbers are measured, not
+illustrative — reproduce them with `node scripts/benchmark-context.mjs` in the uxship repo:
 
 ```jsonc
-// before — 32 500 chars
+// before — 31 913 chars
 { "total": 500, "nodes": [ { "id": "n0", "name": "xxxx…" }, /* …500 items… */ ] }
 
-// after — 23 940 chars, still valid JSON
+// after — 3 441 chars, still valid JSON
 {
   "total": 500,
-  "nodes": [ { "id": "n0", "name": "xxxx…" }, /* …369 items… */ ],
-  "_truncated": { "field": "nodes", "shown": 369, "total": 500 },
+  "nodes": [ { "id": "n0", "name": "xxxx…" }, /* …50 items… */ ],
+  "_truncated": { "field": "nodes", "shown": 50, "total": 500 },
   "_budget": {
     "maxChars": 24000,
-    "actualChars": 23940,
+    "actualChars": 3441,
     "truncated": true,
-    "notes": [ { "field": "nodes", "shown": 369, "total": 500 } ],
-    "hint": "输出已被截断（原 32500 字符 > 上限 24000）：缩小 limit 后重试…"
+    "notes": [ { "field": "nodes", "shown": 50, "total": 500 } ],
+    "hint": "输出已被截断（原 31913 字符 > 上限 24000）：收窄搜索条件（name / types / colors）或调小 limit；需要整体概览时改用 design_describe 拿摘要"
   }
 }
 ```
+
+Note the result is **far below** the 24 000-char budget: the budget is a **ceiling, not a fill
+target**. Truncation walks a fixed ladder — arrays to 50 / 25 / 12 / 6 / 3 / 1 items, strings to
+4 000 / 2 000 / 1 000 / 400 / 200 chars — and stops at the first rung that fits. It does not try to
+use the budget up.
+
+That is a deliberate trade: output size becomes predictable and much smaller, at the cost of
+withholding data that might have fitted. If you would rather approach the ceiling, raise `maxChars`
+and the same ladder applies at the new ceiling.
 
 ## The three guarantees
 
