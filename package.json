@@ -4,6 +4,9 @@
   "description": "uxship — local-first design-canvas agent harness: one MCP contract for MasterGo and Penpot",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "^20.0.0 || ^22.0.0 || >=24.0.0"
+  },
   "scripts": {
     "package": "node scripts/package.mjs",
     "package:skip-build": "node scripts/package.mjs --skip-build",

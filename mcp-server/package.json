@@ -4,6 +4,9 @@
   "description": "uxship MCP server — render AI-generated design into MasterGo / Penpot canvases, and read canvas design back to code",
   "main": "./dist/index.js",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "bin": {
     "uxship-mcp": "./dist/index.js"
   },
@@ -27,10 +30,19 @@
   "keywords": [
     "uxship",
     "mcp",
-    "design",
-    "automation"
+    "model-context-protocol",
+    "ai-agent",
+    "agent-harness",
+    "design-tools",
+    "design-to-code",
+    "code-to-design",
+    "design-systems",
+    "dsl",
+    "local-first",
+    "mastergo",
+    "penpot"
   ],
-  "author": "",
+  "author": "uxship contributors",
   "license": "Apache-2.0",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
