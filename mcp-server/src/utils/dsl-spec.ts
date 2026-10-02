@@ -57,7 +57,7 @@ export interface UnitSpec {
 
 export const DSL_SPEC: DSLSpec = {
   version: '2.0',
-  description: 'uxship MCP DSL规范，定义了从MasterGo节点转换为DSL格式的数据结构。注意：钢笔路径元素在DSL中使用 type: "pen"（也接受 "path" 作为别名），而不是 "vector"。',
+  description: 'uxship MCP DSL 规范，定义画布节点与 DSL 格式之间的数据结构（宿主无关：同一份 DSL 同时驱动 MasterGo 与 Penpot）。注意：钢笔路径元素在 DSL 中使用 type: "pen"（也接受 "path" 作为别名），而不是 "vector"。',
   commonProperties: [
     {
       name: 'type',
