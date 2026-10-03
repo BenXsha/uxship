@@ -14,9 +14,15 @@ import type { HostNode } from '../host/types'
 
 /** `teamLibrary/list`：组件 + 样式一起给（MasterGo 侧对应 team_library_* 三件套的合集） */
 export async function handleTeamLibraryList(
-  _params: Record<string, unknown>,
+  params: Record<string, unknown>,
   context: HandlerContext,
 ): Promise<unknown> {
+  // 先把可连接的团队库连上（Penpot: `library.connectLibrary`）。
+  // 不连就只能读到本文件库 —— “AI 能读团队库、但必须人回 UI 手连一次”曾是 Demo 2 的真实阻塞点。
+  const connection = context.host.connectTeamLibraries
+    ? await context.host.connectTeamLibraries(typeof params.library === 'string' ? params.library : undefined)
+    : undefined
+
   const [components, colors, texts] = await Promise.all([
     context.host.listComponents(),
     context.host.listColorStyles(),
@@ -34,6 +40,15 @@ export async function handleTeamLibraryList(
       }]),
   ).values()]
 
+  // 只有本文件库时，把“为什么没有外部库”讲到可操作：能力缺失 / 可连但没连 / 真的没有
+  let hint: string | undefined
+  if (libraries.every((library) => library.isLocal)) {
+    if (!connection) hint = '当前只有本文件库；团队库需先在 Penpot UI 里手动连接'
+    else if (!connection.supported) hint = `当前只有本文件库；无法自动连库（${connection.reason ?? '宿主缺 connectLibrary'}），请在 Penpot UI 里手动连接`
+    else if (connection.candidates?.length) hint = '当前只有本文件库；可连接的团队库见 teamLibraries.candidates（调用时传 library 即可自动连接）'
+    else hint = '当前只有本文件库；没有可连接的团队库（availableLibraries 为空）'
+  }
+
   return {
     available: true,
     model: 'penpot-libraries',
@@ -47,9 +62,8 @@ export async function handleTeamLibraryList(
     components,
     colorStyles: colors,
     textStyles: texts,
-    hint: libraries.every((library) => library.isLocal)
-      ? '当前只有本文件库；团队库需先在 Penpot 里连接（本插件暂未接线 connectLibrary）'
-      : undefined,
+    ...(connection ? { teamLibraries: connection } : {}),
+    hint,
   }
 }
 
@@ -148,18 +162,42 @@ export async function handleTeamStyleImport(
   }
   if (!name) throw new Error('team_style_import 需要 name（样式名）')
 
-  const [colors, texts] = await Promise.all([
+  const requestedLibrary = typeof params.library === 'string' ? params.library : undefined
+  const connector = context.host.connectTeamLibraries
+  let autoConnected: string[] = []
+  if (connector && requestedLibrary) {
+    const info = await connector(requestedLibrary)
+    autoConnected = info.newlyConnected.map((lib) => lib.name)
+  }
+
+  let [colors, texts] = await Promise.all([
     context.host.listColorStyles(),
     context.host.listTextStyles(),
   ])
-  const color = colors.find((candidate) => candidate.name === name || candidate.path === name)
-  const text = texts.find((candidate) => candidate.name === name || candidate.path === name)
+  const findColor = () => colors.find((candidate) => candidate.name === name || candidate.path === name)
+  const findText = () => texts.find((candidate) => candidate.name === name || candidate.path === name)
+  let color = findColor()
+  let text = findText()
+
+  // 名字没命中、且没指定库 → 可能只是“库还没连”，把所有可连的库连上再查一次
+  // （首次导入的常见情形；指定了库时上面已经连过）
+  if (!color && !text && !requestedLibrary && connector) {
+    const info = await connector()
+    autoConnected = info.newlyConnected.map((lib) => lib.name)
+    if (info.newlyConnected.length) {
+      ;[colors, texts] = await Promise.all([context.host.listColorStyles(), context.host.listTextStyles()])
+      color = findColor()
+      text = findText()
+    }
+  }
+
   const style = color ?? text
   if (!style) {
     throw new Error(`样式未找到: ${name} —— 可先用 team_library_list 或 style_listColors 查询`)
   }
 
   const notes = [
+    ...(autoConnected.length ? [`已自动连接团队库: ${autoConnected.join('、')}`] : []),
     'Penpot 不需要把团队库样式拷贝进本文件：库一旦连接即可直接使用（改样式全稿联动），' +
       '因此这里的"导入"= 确认可用',
   ]
@@ -249,6 +287,16 @@ export async function handleNodeExportBatch(
 
 // ───────────────────────── 宿主真做不到的两个 ─────────────────────────
 
+/** `page/delete` 的回执（宿主无删页能力，`available` 恒为 false） */
+interface PageDeleteResult {
+  available: false
+  pageId?: string
+  pageName?: string
+  reason: string
+  hint: string
+  pages: readonly unknown[]
+}
+
 /**
  * `page/delete`：删页。
  *
@@ -258,7 +306,7 @@ export async function handleNodeExportBatch(
 export function handlePageDelete(
   params: Record<string, unknown>,
   context: HandlerContext,
-): unknown {
+): PageDeleteResult {
   const pageId = typeof params.pageId === 'string' ? params.pageId : ''
   const pages = context.host.listPages()
   const known = pageId ? pages.find((page) => page.id === pageId) : undefined

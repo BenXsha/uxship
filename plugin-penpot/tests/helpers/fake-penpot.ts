@@ -124,6 +124,8 @@ export interface FakePenpot {
     connected: unknown[]
     availableLibraries(): Promise<unknown[]>
     connectLibrary(id: string): Promise<unknown>
+    /** 测试辅助：登记一个「可连接但尚未连接」的团队库（真机：library.availableLibraries()） */
+    __addAvailableLibrary(lib: unknown): void
   }
   fonts: {
     all: unknown[]
@@ -749,16 +751,27 @@ export function createFakePenpot(options: FakePenpotOptions = {}): FakePenpot {
         })(),
       }
 
+      const connected: unknown[] = [localLibrary]
+      const available: unknown[] = []
+
       return {
         local: localLibrary,
         // ⚠️ 照抄真机形态：`connected` 里**也含本文件库**（实测 component/list 返回 4 条而只有
         // 2 个组件）。不这样建模，"按 id 去重"的逻辑在单测里永远测不到。
-        connected: [localLibrary] as unknown[],
+        connected,
         async availableLibraries() {
-          return []
+          return available.map((lib) => ({ id: (lib as { id: string }).id, name: (lib as { name: string }).name }))
         },
-        async connectLibrary() {
-          return {}
+        async connectLibrary(id: string) {
+          // 真机语义：连上之后库进入 `connected`（之后 listComponents 就能看到它的组件）
+          const found = available.find((lib) => (lib as { id: string }).id === id)
+          if (!found) throw new Error(`library not found: ${id}`)
+          available.splice(available.indexOf(found), 1)
+          connected.push(found)
+          return found
+        },
+        __addAvailableLibrary(lib: unknown) {
+          available.push(lib)
         },
       }
     })(),

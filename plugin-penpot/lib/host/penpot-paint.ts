@@ -28,7 +28,19 @@ export interface SideBorderSpec {
   gradient?: PenpotGradient
 }
 
-export function toPenpotFills(fills: HostFill[]): { fills: PenpotFill[]; skipped: string[] } {
+/**
+ * 把 DSL 填充映射成 Penpot `Fill`。
+ *
+ * `images` 是调用方（`penpot.ts#resolveImageFills`）**预解析**好的图片表：图片二进制 →
+ * `PenpotImageData` 必须走异步的 `uploadMediaUrl` / `uploadMediaData`，而本函数保持纯同步。
+ *
+ * 传了 `images` 但表里没有某个 IMAGE 填充 = 解析失败或没有图片源，**失败原因由调用方上报**，
+ * 这里就不再重复报一条；不传 `images`（旧调用方）时给一条通用原因。
+ */
+export function toPenpotFills(
+  fills: HostFill[],
+  images?: Map<HostFill, PenpotImageData>,
+): { fills: PenpotFill[]; skipped: string[] } {
   const out: PenpotFill[] = []
   const skipped: string[] = []
 
@@ -81,13 +93,12 @@ export function toPenpotFills(fills: HostFill[]): { fills: PenpotFill[]; skipped
 
     // ── 图片 ──
     if (kind === 'IMAGE') {
-      // IMAGE fill 需要 ImageData。节点级 imageUrl 已走 uploadMediaUrl；
-      // 填充里的 imageData 由服务端预取（enrichDslWithImageData）负责。
-      if (!fill.imageData) {
-        skipped.push('IMAGE 填充缺少 imageData（Penpot 需先 uploadMedia* 拿到 ImageData）')
+      const image = images?.get(fill)
+      if (!image) {
+        if (!images) skipped.push('IMAGE 填充缺少可用的图片数据（需要 imageUrl 或 imageData）')
         continue
       }
-      skipped.push('IMAGE 填充需要 uploadMediaData 生成 ImageData，本版本尚未接线')
+      out.push({ fillImage: image, fillOpacity: fillOpacity ?? 1 })
       continue
     }
 

@@ -12,6 +12,7 @@ import { RequestDispatcher } from '@lib/dispatcher'
 import { installHost, resetHost, MemoryHost, PenpotHost } from '@lib/host/index'
 import { handleVariableCreate, handleVariableList, handleStyleApply } from '@lib/api/tokenHandlers'
 import { installFakePenpot, type FakePenpot } from './helpers/fake-penpot'
+import type { TeamLibraryConnectionInfo } from '@lib/host/types'
 
 let host: MemoryHost
 let dispatcher: RequestDispatcher
@@ -428,6 +429,37 @@ describe('teamLibrary/*', () => {
     expect(byUkey.hint).toMatch(/name/)
 
     expect((await result('teamLibrary/importStyle', { name: 'nope' })).__error?.message).toMatch(/样式未找到/)
+  })
+
+  it('list 会先自动连库（connectTeamLibraries），并把连接结果带回来', async () => {
+    const seen: (string | undefined)[] = []
+    // SAFETY: MemoryHost 未声明可选能力 connectTeamLibraries；测试里临时挂上，用于驱动 handler 的自动连库分支。
+    const connectable = host as unknown as {
+      connectTeamLibraries?: (nameOrId?: string) => Promise<TeamLibraryConnectionInfo>
+    }
+    connectable.connectTeamLibraries = async (name?: string) => {
+      seen.push(name)
+      return { connected: [], newlyConnected: [{ id: 'team-1', name: 'Team DS' }], supported: true }
+    }
+
+    const listed = await result('teamLibrary/list', { library: 'Team DS' })
+    expect(seen).toEqual(['Team DS'])
+    expect(listed.teamLibraries.newlyConnected[0].name).toBe('Team DS')
+  })
+
+  it('importStyle 名字没命中 → 先自动连库再查（连上后样式就出现）', async () => {
+    // SAFETY: 同上 —— MemoryHost 未声明该可选能力，测试里临时挂上。
+    const connectable = host as unknown as {
+      connectTeamLibraries?: (nameOrId?: string) => Promise<TeamLibraryConnectionInfo>
+    }
+    connectable.connectTeamLibraries = async () => {
+      host.colorStyles.push({ id: 'paint-late', name: 'Late / Token', color: '#ABCDEF', isLocal: false, libraryId: 'team-9', libraryName: 'Team Late' })
+      return { connected: [], newlyConnected: [{ id: 'team-9', name: 'Team Late' }], supported: true }
+    }
+
+    const imported = await result('teamLibrary/importStyle', { name: 'Late / Token' })
+    expect(imported.ok).toBe(true)
+    expect(imported.notes.join(' ')).toMatch(/已自动连接团队库: Team Late/)
   })
 })
 

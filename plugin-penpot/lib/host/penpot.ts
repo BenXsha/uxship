@@ -26,7 +26,7 @@ import { HostArgumentError, HostNodeNotFoundError, UnsupportedHostFeatureError }
 import { orderedPropertyEntries } from './apply-order'
 import { normalizeColor } from './color'
 import { fromPenpotEffects, fromPenpotFills, fromPenpotStrokes } from './penpot-read'
-import { HOST_SCAN_BUDGET, containerChildren, flexOf, getChildren } from './penpot-runtime'
+import { HOST_SCAN_BUDGET, connectTeamLibraries as connectTeamLibrariesAtRuntime, containerChildren, flexOf, getChildren } from './penpot-runtime'
 import { analyzeSimpleSvg, normalizeSvgSize } from './svg-import'
 import { buildVectorPath, type VectorKind } from './vector-shapes'
 import * as components from './penpot-components'
@@ -35,6 +35,8 @@ import * as sideBorders from './penpot-side-borders'
 import * as tokens from './penpot-tokens'
 import * as textRuns from './penpot-text'
 import { penpotCapFor, toPenpotEffects, toPenpotFills, toPenpotStrokes } from './penpot-paint'
+import { isFillVisible, normalizeFillType } from './gradient'
+import { decodeBase64, inlineMediaName, mimeTypeFromUrl, penpotMediaRejection, sniffImageMime } from './media'
 import {
   PENPOT_CORNER_KEYS,
   PENPOT_PADDING_KEYS,
@@ -77,6 +79,7 @@ import type {
   NodeSpec,
   NotifyKind,
   PropertySkip,
+  TeamLibraryConnectionInfo,
 } from './types'
 
 // ═══════════════════════════════════════════════════════════
@@ -195,12 +198,11 @@ export class PenpotHost implements HostAdapter {
         // Penpot 的 Stroke 只有 strokeAlignment + caps，没有 per-side（§12.5）
         perSideStrokes: false,
         gradients: true,
-        // 宿主**有**图片填充（`shape.fills = [{ fillImage }]`），但**本适配器尚未接线** DSL 的 IMAGE 填充：
-        // `toPenpotFills()` 对 IMAGE 一律如实 skip（见 docs/host-differences.md「Images」）。
-        // 与 gridLayout 同一口径：别把「我们没做」写成「宿主没有」。接线后改成 true。
-        imageFills: false,
-        // 节点级 `imageUrl` 已接线（`uploadMediaUrl` / `uploadMediaData`，按 URL 缓存）——
-        // 这条是真能用的，且不受插件 iframe 的 CORS 限制（Penpot 后端代拉）。
+        // IMAGE 填充已接线：`resolveImageFills` 把 `imageData`（裸 base64 / data URI）
+        // 或 `imageUrl` 换成宿主的 `ImageData` 再落 `fillImage`（见 docs/host-differences.md「Images」）。
+        imageFills: true,
+        // 节点级 `imageUrl` 也接线（`uploadMediaUrl` / `uploadMediaData`，按 URL 缓存）——
+        // 不受插件 iframe 的 CORS 限制（Penpot 后端代拉）。
         imageFromUrl: has(penpot.uploadMediaUrl),
         effects: true,
         // blur / backgroundBlur 是两个独立成员，能力齐备
@@ -834,10 +836,14 @@ export class PenpotHost implements HostAdapter {
           break
         }
         case 'fills': {
-          const result = toPenpotFills(value as HostFill[])
+          const fills = value as HostFill[]
+          // IMAGE 填充要先把图片换成宿主可用的 ImageData（异步），再交给纯映射的 toPenpotFills
+          const resolved = await this.resolveImageFills(fills)
+          const result = toPenpotFills(fills, resolved.images)
           shape.fills = result.fills
           if (result.fills.length) ok('fills')
           for (const reason of result.skipped) skip('fills', reason)
+          for (const reason of resolved.errors) skip('fills', reason)
           break
         }
         case 'strokes': {
@@ -1177,105 +1183,151 @@ export class PenpotHost implements HostAdapter {
   }
 
   /**
-   * 把远程图片 URL 变成 Penpot 的图片填充。
+   * 解析填充里的 IMAGE：把每一条图片填充换成宿主可用的 `ImageData`（失败原因单独收着）。
    *
-   * 为什么走 `uploadMediaUrl` 而不是自己 fetch：Penpot 的 uploadMediaUrl 由**后端**代拉，
-   * 因此不受插件 iframe 的 CORS 限制，也不用把二进制搬到前端。
-   * 失败（离线 / 404 / 内网地址）一律如实返回错误 → 由调用方写进 skipped。
+   * 为什么在 `applyProperties` 里做而不是 `toPenpotFills`：取图是**异步**的
+   * （`uploadMediaUrl` / `uploadMediaData`），而 `toPenpotFills` 是纯同步映射。
+   * 返回值按**填充对象引用**索引，调用方原样转交给 `toPenpotFills`。
+   */
+  private async resolveImageFills(fills: HostFill[]): Promise<{ images: Map<HostFill, PenpotImageData>; errors: string[] }> {
+    const images = new Map<HostFill, PenpotImageData>()
+    const errors: string[] = []
+
+    for (const fill of fills) {
+      // 隐藏的图片填充不会落地，没必要为此上传（省一次宿主往返）
+      if (normalizeFillType(fill.type) !== 'IMAGE' || !isFillVisible(fill)) continue
+      try {
+        images.set(fill, await this.imageDataFromFill(fill))
+      } catch (error) {
+        errors.push(`图片填充未落地: ${(error as Error).message}`)
+      }
+    }
+
+    return { images, errors }
+  }
+
+  /**
+   * 填充/节点级图片数据 → `ImageData`。
+   *
+   * 优先 `imageData`（客户端渲染产出的是**裸 base64** 的 PNG；也可能是 data URI），
+   * 否则 `imageUrl`（远程走 `uploadMediaUrl`，`data:` 走 `uploadMediaData`）。
+   */
+  private async imageDataFromFill(fill: HostFill): Promise<PenpotImageData> {
+    const inline = typeof fill.imageData === 'string' && fill.imageData.trim() ? fill.imageData.trim() : undefined
+    const url = typeof fill.imageUrl === 'string' && fill.imageUrl.trim() ? fill.imageUrl.trim() : undefined
+    const source = inline ?? (url && /^data:/i.test(url) ? url : undefined)
+
+    if (source) {
+      const cached = this.imageDataCache.get(source)
+      if (cached) return cached
+      // 裸 base64 没有标签，用 imageUrl 的后缀做第二线索（data URI 自带 MIME）
+      const uploaded = await this.requireUploadMediaData(this.decodeInlineImage(source, inline ? url : undefined))
+      this.imageDataCache.set(source, uploaded)
+      return uploaded
+    }
+
+    if (url) return await this.imageDataFromUrl(url)
+    throw new Error('图片填充既没有 imageUrl 也没有 imageData')
+  }
+
+  /**
+   * 远程 URL → `ImageData`（`uploadMediaUrl`）。
+   *
+   * 为什么不自已 fetch：Penpot 的 uploadMediaUrl 由**后端**代拉，不受插件 iframe 的 CORS 限制，
+   * 也不用把二进制搬到前端。同一张图在一页里被引十几次是常态，按 URL 缓存避免重复上传。
+   */
+  private async imageDataFromUrl(url: string): Promise<PenpotImageData> {
+    const upload = penpot.uploadMediaUrl
+    if (typeof upload !== 'function') {
+      throw new Error('宿主不支持 uploadMediaUrl，无法把远程图片转为图片填充')
+    }
+    const cached = this.imageDataCache.get(url)
+    if (cached) return cached
+
+    const name = url.split('/').pop()?.split('?')[0] || 'image'
+    const imageData = await upload.call(penpot, name, url)
+    if (!imageData) throw new Error(`uploadMediaUrl 返回空: ${url}`)
+    this.imageDataCache.set(url, imageData)
+    return imageData
+  }
+
+  /**
+   * `data:image/png;base64,…` 或裸 base64 → 上传参数（`uploadMediaData` 需要的 name/data/mimeType）。
+   *
+   * 硬限制先在这里判：Penpot 只收 5 种 MIME、默认 30 MiB —— 提前报可读原因，
+   * 别把宿主的 `media-type-not-allowed` 原样穿透。
+   */
+  private decodeInlineImage(value: string, hintUrl?: string): { name: string; data: Uint8Array; mimeType: string } {
+    let declaredMime: string | undefined
+    let bytes: Uint8Array
+
+    if (/^data:/i.test(value)) {
+      const match = /^data:([^;,]+)(;base64)?,(.*)$/is.exec(value)
+      if (!match) throw new Error('data URI 格式无法解析')
+      declaredMime = (match[1] || '').trim().toLowerCase() || undefined
+      const payload = match[3] ?? ''
+      bytes = match[2] ? decodeBase64(payload) : new TextEncoder().encode(decodeURIComponent(payload))
+    } else {
+      bytes = decodeBase64(value)
+    }
+
+    const mimeType = sniffImageMime(bytes) ?? declaredMime ?? mimeTypeFromUrl(hintUrl)
+    const rejection = penpotMediaRejection(mimeType, bytes.byteLength)
+    if (rejection) throw new Error(rejection)
+
+    return { name: inlineMediaName(mimeType as string), data: bytes, mimeType: mimeType as string }
+  }
+
+  /** `uploadMediaData` 是可选能力（旧宿主没有）；缺失时给明确原因而不是静默丢图 */
+  private async requireUploadMediaData(input: { name: string; data: Uint8Array; mimeType: string }): Promise<PenpotImageData> {
+    const uploaded = await this.uploadMediaBinary(input)
+    if (!uploaded) throw new Error('宿主未提供 uploadMediaData，无法把内联图片转为图片填充')
+    return uploaded
+  }
+
+  /**
+   * 节点级 `imageUrl`（`<img>` / 手写 DSL 的 `element.imageUrl`）→ 图片填充。
+   * `data:` URI 走**另一条路**：它是内联二进制，不是远程资源 ——
+   * `uploadMediaUrl` 会让后端去"拉"一个 data URI，必然失败。
    */
   private async fillFromImageUrl(
     url: string,
     scaleMode: NodeProperties['imageScaleMode'],
   ): Promise<{ fills: PenpotFill[]; error?: string }> {
-    if (!url.trim()) return { fills: [], error: 'imageUrl 为空' }
+    const trimmed = url.trim()
+    if (!trimmed) return { fills: [], error: 'imageUrl 为空' }
 
-    // `data:` URI 走**另一条路**：它是内联二进制，不是远程资源 ——
-    // `uploadMediaUrl` 会让后端去"拉"一个 data URI，必然失败（这条路以前就是这么废的）。
-    // 官方 API 有 `uploadMediaData(name, data: Uint8Array, mimeType)` 专门收二进制。
-    if (/^data:/i.test(url)) {
-      return await this.fillFromImageDataUrl(url, scaleMode)
+    if (/^data:/i.test(trimmed)) return await this.fillFromImageDataUrl(trimmed, scaleMode)
+
+    try {
+      const imageData = await this.imageDataFromUrl(trimmed)
+      // Penpot 的图片填充：fillImage 携带 ImageData；贴合模式无法表达（Fill 没有对应字段）。
+      void scaleMode
+      return { fills: [{ fillImage: imageData, fillOpacity: 1 }] }
+    } catch (error) {
+      return { fills: [], error: `图片拉取失败（${trimmed}）: ${(error as Error).message}` }
     }
-
-    const upload = penpot.uploadMediaUrl
-    if (typeof upload !== 'function') {
-      return { fills: [], error: '宿主不支持 uploadMediaUrl，无法把远程图片转为图片填充' }
-    }
-
-    let imageData = this.imageDataCache.get(url)
-    if (!imageData) {
-      try {
-        const name = url.split('/').pop()?.split('?')[0] || 'image'
-        imageData = await upload.call(penpot, name, url)
-        if (!imageData) return { fills: [], error: `uploadMediaUrl 返回空: ${url}` }
-        this.imageDataCache.set(url, imageData)
-      } catch (error) {
-        return { fills: [], error: `图片拉取失败（${url}）: ${(error as Error).message}` }
-      }
-    }
-
-    // Penpot 的图片填充：fillImage 携带 ImageData；贴合模式由宿主按尺寸推导。
-    // scaleMode 目前只能如实报告“未区分”（Penpot 无 imageScaleMode 字段）。
-    void scaleMode
-    return { fills: [{ fillImage: imageData, fillOpacity: 1 }] }
   }
 
-  /**
-   * `data:image/png;base64,...` → 图片填充（走 `penpot.uploadMediaData`）。
-   *
-   * 为什么要单独一条：AI 生成的 HTML 里内联图片（`<img src="data:...">`）很常见，
-   * 而 `uploadMediaUrl` 只适合"能被后端拉取的 URL"。两者混在一起时，内联图会**静默变成
-   * skipped**（能看见、但用不了）。这里按 mimeType 解码后交给宿主。
-   */
+  /** `data:image/png;base64,…` → 图片填充（走 `penpot.uploadMediaData`） */
   private async fillFromImageDataUrl(
     url: string,
     scaleMode: NodeProperties['imageScaleMode'],
   ): Promise<{ fills: PenpotFill[]; error?: string }> {
-    const match = /^data:([^;,]+)(;base64)?,(.*)$/is.exec(url)
-    if (!match) return { fills: [], error: 'data URI 格式无法解析' }
-
-    const mimeType = match[1] || 'application/octet-stream'
-    const isBase64 = Boolean(match[2])
-    const payload = match[3] ?? ''
-
-    let bytes: Uint8Array
-    try {
-      bytes = isBase64
-        ? (() => {
-            const binary = atob(payload)
-            const out = new Uint8Array(binary.length)
-            for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i)
-            return out
-          })()
-        : new TextEncoder().encode(decodeURIComponent(payload))
-    } catch (error) {
-      return { fills: [], error: `data URI 解码失败: ${(error as Error).message}` }
-    }
-
     const cached = this.imageDataCache.get(url)
-    let imageData = cached
-    if (!imageData) {
-      const uploaded = await this.uploadMediaBinary({
-        name: `inline.${(mimeType.split('/')[1] || 'bin').replace(/[^a-z0-9]/gi, '')}`,
-        data: bytes,
-        mimeType,
-      })
-      if (!uploaded) {
-        return { fills: [], error: '宿主未提供 uploadMediaData，无法把内联图片转为图片填充' }
-      }
-      // 缓存以 URL 为键（同一张内联图重复出现时不重复上传）
-      imageData = uploaded
-      this.imageDataCache.set(url, imageData)
+    try {
+      const imageData = cached ?? await this.requireUploadMediaData(this.decodeInlineImage(url))
+      if (!cached) this.imageDataCache.set(url, imageData)
+      void scaleMode
+      return { fills: [{ fillImage: imageData, fillOpacity: 1 }] }
+    } catch (error) {
+      return { fills: [], error: (error as Error).message }
     }
-
-    void scaleMode
-    return { fills: [{ fillImage: imageData, fillOpacity: 1 }] }
   }
 
   /**
    * 上传图片二进制（`uploadMediaData(name, data: Uint8Array, mimeType)`），返回**完整** ImageData。
    *
-   * 用来支持 `data:` URI 图片：这类图不是"远程资源"，`uploadMediaUrl` 让后端去拉一个
-   * data URI 必然失败 —— 之前那条路是**用不了**的（会以 skipped 上报，能看见但没法用）。
    * 保留宿主回的 width/height：`PenpotFill.fillImage` 需要完整 ImageData，只留 id/name 不够。
    */
   private async uploadMediaBinary(input: { name: string; data: Uint8Array; mimeType: string }): Promise<PenpotImageData | null> {
@@ -1513,6 +1565,11 @@ export class PenpotHost implements HostAdapter {
 
   async listComponents(): Promise<HostComponentInfo[]> {
     return components.listComponents()
+  }
+
+  /** 把可连接的团队库连上（`library.connectLibrary`）；见 `penpot-runtime.connectTeamLibraries` */
+  async connectTeamLibraries(nameOrId?: string): Promise<TeamLibraryConnectionInfo> {
+    return connectTeamLibrariesAtRuntime(nameOrId)
   }
 
   async instantiateComponent(input: {

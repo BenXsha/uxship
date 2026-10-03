@@ -596,6 +596,36 @@ export interface HostComponentInfo {
   masterNodeId?: string
 }
 
+/** 库的极小标识（用于连接/列举的回执，不带 components 等重字段） */
+export interface HostLibraryRef {
+  id: string
+  name: string
+}
+
+/**
+ * 团队库连接状态（`HostAdapter.connectTeamLibraries` 的结果）。
+ *
+ * 为什么把“没连上”的每种原因分开：
+ *   - `supported:false` = 宿主旧/没这个 API（该改手动连）；
+ *   - `candidates` 有值但没命中 = 名字写错（该改用其中某个）；
+ *   - `failed` = 名字对、宿主拒了（该看错误文本）。
+ * 三种给 AI 的下一步完全不同，合成一句“团队库不可用”就白费了。
+ */
+export interface TeamLibraryConnectionInfo {
+  /** 当前可用（本文件库 + 已连接）的库 */
+  connected: HostLibraryRef[]
+  /** 本次新连上的库 */
+  newlyConnected: HostLibraryRef[]
+  /** 宿主是否具备“列出可连库 + 连接”的能力 */
+  supported: boolean
+  /** 没连上时的原因（能力缺失 / 名字没命中 / 连接抛错） */
+  reason?: string
+  /** `availableLibraries()` 的返回值 —— 给“可连的库有这些”提示 */
+  candidates?: HostLibraryRef[]
+  /** 本次尝试连接但失败（抛错）的库 */
+  failed?: (HostLibraryRef & { error: string })[]
+}
+
 /** 宿主可用字体（fonts/list 用） */
 export interface HostFontInfo {
   family: string
@@ -701,10 +731,25 @@ export interface HostAdapter {
   listComponents(): Promise<HostComponentInfo[]>
 
   /**
+   * 把团队库**连上**（Penpot：`library.connectLibrary(id)`），让 `listComponents` / 实例化
+   * 能看到本文件之外的库。
+   *
+   * 为什么由适配器做而不是新增工具：Penpot 的插件可以**读**已连接的库，但从不调
+   * `connectLibrary` —— 于是 AI 想复用团队组件时，只能请用户“先回 UI 连一次”（Demo 2 的真实阻塞点）。
+   * 连接是复用团队资产的必经步骤，不该让模型多记一个工具（见 CONTRIBUTING 的工具面治理）。
+   *
+   * `nameOrId` 给了就连指定库；不给则连上 `availableLibraries()` 里所有还没连的。
+   * 不具备该能力的宿主可以不实现（MasterGo 的团队库不经“连接”）。返回已连接/本次新连的清单，
+   * 以及能力缺失或连接失败的原因 —— 不静默失败。
+   */
+  connectTeamLibraries?(nameOrId?: string): Promise<TeamLibraryConnectionInfo>
+
+  /**
    * 实例化组件（团队库/本地库）并放到画布上。
    *
    * 定位方式：`componentId`（最精确）> `componentName` + 可选 `libraryName`（按名字解析）。
-   * 团队库需已连接（Penpot：`library.connectLibrary`）；未连接时如实抛错并给出提示。
+   * 团队库不需要调用方先连：Penpot 适配器会按需 `connectLibrary`（见 `connectTeamLibraries`），
+   * 只在库真的连不上时抛错（错误里分清是名字没命中还是能力缺失）。
    */
   instantiateComponent(input: {
     componentId?: string

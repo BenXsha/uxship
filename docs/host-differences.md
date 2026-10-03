@@ -82,16 +82,27 @@ not emit `GRID`; the pipeline's main line is flex auto-layout.
 Treating `isComponentRoot()` as "is the main" once classified a user's selected copy as a main. The
 lesson generalises: grep the vendor type file and read the member's description text.
 
-### Team libraries must be connected in Penpot first
+### Team libraries: the adapter connects them for you
 
-The Penpot plugin can **read** the libraries a file has connected, but it never calls the host's
-`connectLibrary` — so a library has to be connected in Penpot's UI before any `team_library_*` /
-`team_component_*` call can see it. Observed: `team_library_list` returns only the open document
-(`externalCount: 0`, `componentCount` 0) and the response says why.
+A Penpot plugin can only see libraries the file has **connected** — `library.connected` is the
+read side, and `library.connectLibrary(id)` is the write side. Requiring the user to connect one in
+Penpot's UI first was the real blocker for team-library reuse: `team_library_list` returned only the
+open document (`externalCount: 0`) even though the library was available.
 
-This is an **adapter limitation, not a host one**: `library.availableLibraries()` and
-`library.connectLibrary(id)` both exist in the Penpot plugin API, and the test fake already
-implements them — the wiring is simply not done. Until it is, connect the library in the UI.
+The adapter now connects them itself. `connectTeamLibraries(nameOrId?)` reads
+`library.availableLibraries()`, connects whatever is still missing, and reports what it did —
+triggered by `team_library_list` / `component_list` / `component_search` (all), by a named
+`library` on `team_component_import` / `team_style_import` (that one), and on an import miss with no
+library named (all, then retry). No extra tool: connecting is a required step of "reuse a team
+asset", not a workflow of its own.
+
+Failure is reported in three separate ways, because the caller's next move differs:
+`supported: false` (old host without the API → connect it in the UI), a populated `candidates` list
+with the name not in it (fix the name), or `failed[]` (the host refused — read the error).
+
+Design rationale, in one line: `library.availableLibraries()` tells you what *can* be connected, not
+what the document should depend on — so the adapter connects the narrowest set that makes the
+requested call possible and says which libraries it added.
 
 ### Host calls are synchronous: cost is call *count*, not elapsed parallelism
 
@@ -128,16 +139,18 @@ degradations:
 2. do icons actually have ink in the right box?
 3. is `hasStructuralSkips` set?
 
-## Images: the engine delivers a fill, Penpot does not land it
+## Images: one silent engine bug, and the Penpot wiring
 
-An image reaches the pipeline three ways. Two of them end in an `IMAGE` fill, and that fill currently
-stops at the Penpot adapter while MasterGo renders it.
+An image reaches the pipeline three ways. All three now deliver a fill; the two that end in an
+`IMAGE` fill go through a host-specific conversion (MasterGo → `imageRef`, Penpot → `ImageData`).
+This section keeps the failure history because it was silent for a long time — "images work" had been
+assumed, not measured.
 
 | Authored as | Engine → DSL | MasterGo | Penpot |
 |---|---|---|---|
-| `<img src>` | fill `{type:'image', imageUrl, imageData?}` | IMAGE fill → `imageRef` | **skipped** (Gap 2) |
-| CSS `background-image: url(…)` | fill `{type:'image', …}`, one per layer | IMAGE fill → `imageRef` | **skipped** (Gap 2) |
-| node-level `imageUrl` (hand-written DSL) | `element.imageUrl` | image node | **works** — `uploadMediaUrl`, cached per URL |
+| `<img src>` | fill `{type:'image', imageUrl, imageData?}` | IMAGE fill → `imageRef` | fill → `ImageData` (`uploadMediaUrl` / `uploadMediaData`) |
+| CSS `background-image: url(…)` | fill `{type:'image', …}`, one per layer | IMAGE fill → `imageRef` | same |
+| node-level `imageUrl` (hand-written DSL) | `element.imageUrl` | image node | `uploadMediaUrl`, cached per URL |
 
 ### Gap 1 (fixed) — the engine used to drop every `<img>` fill
 
@@ -155,25 +168,31 @@ if (fills) node.fills = imgFill ? [imgFill] : fills // never ran when imgFill wa
 The `<img>` node came out with the right name, size and radius but **no `fills` key at all**. The
 fill is now assigned explicitly, and the harness check that had gone red (`远程图片被识别为图片填充`)
 is green again. It is recorded here because it is why "images work" was believed while no HTML image
-had ever reached a canvas — and because the fill now arrives at the adapter and meets Gap 2.
+had ever reached a canvas.
 
-### Gap 2 — the Penpot adapter never wires IMAGE fills
+### Gap 2 (fixed) — the Penpot adapter lands IMAGE fills
 
-`toPenpotFills()` has an IMAGE branch that **always** reports a skip and continues, even when the DSL
-carries `imageData` (`plugin-penpot/lib/host/penpot-paint.ts`). MasterGo consumes
-`imageData` / `imageUrl` into an `imageRef` (`plugin-mastergo/lib/api/dsl-renderer.ts`), so the
-server-side prefetch `enrichDslWithImageData()` (`mcp-server/src/utils/code-to-design-service.ts`)
-is **dead code** — exported, never called, and only MasterGo would have benefited.
+`toPenpotFills()` used to report a skip and continue for **every** IMAGE fill, `imageData` or not
+(`plugin-penpot/lib/host/penpot-paint.ts`). Conversion is asynchronous — `uploadMediaUrl` for a
+remote URL, `uploadMediaData` for bytes — so it does not belong in that pure sync mapper: it now
+lives in `PenpotHost#resolveImageFills`, called from the `fills` case of `applyProperties`, which
+passes the resolved `Map<HostFill, PenpotImageData>` into `toPenpotFills`.
 
-Penpot only has the node-level `imageUrl` path (`penpot.ts` `case 'imageUrl'` → `uploadMediaUrl` /
-`uploadMediaData`, cached by URL). The engine never emits `imageUrl` for HTML, so in practice HTML
-images never reach a Penpot canvas.
+Bare base64 `imageData` (what the client render produces) carries no MIME, so `lib/host/media.ts`
+sniffs it from magic bytes. Two host rules are enforced **before** the upload — the five allowed MIME
+types and the 30 MiB `media-max-file-size` — so a rejected image reports a readable reason instead of
+Penpot's `media-type-not-allowed`. Images are cached by source (URL, or the base64 itself), and one
+that cannot be resolved lands in `skipped` rather than as a blank frame.
 
-### Gap 3 — the capability flag contradicted the adapter
+`enrichDslWithImageData()` (`mcp-server/src/utils/code-to-design-service.ts`) stays dead code: the
+client render already supplies `imageData`, and Penpot uploads in-plugin. It is the hook to wire if
+the MasterGo path ever needs server-side prefetch.
 
-`probe()` reported `props.imageFills: true` while the fill path skipped every IMAGE fill. That is the
-same "host has it / adapter does not" case `gridLayout` is careful about, so `imageFills` is now
-`false` until Gap 2 is wired; `imageFromUrl` stays `true` because the node-level path really works.
+### Gap 3 (fixed) — the capability flag matches again
+
+`probe()` said `imageFills: true` while the adapter skipped every fill; it was flipped to `false` when
+this gap was documented, and back to `true` once `resolveImageFills` landed. `imageFromUrl` is `true`
+because the node-level path works.
 
 ### What Penpot can and cannot express
 

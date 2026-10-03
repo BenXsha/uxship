@@ -60,6 +60,8 @@ describe('能力探测', () => {
     expect(caps.props.tokenBinding).toBe(true)
     expect(caps.props.autoLayout).toBe(true)
     expect(caps.props.imageFromUrl).toBe(true)
+    // IMAGE 填充已接线（resolveImageFills → uploadMediaUrl/uploadMediaData）
+    expect(caps.props.imageFills).toBe(true)
     expect(caps.ops.renderUiIframe).toBe(true)
     expect(caps.ops.componentVariants).toBe(true)
   })
@@ -167,12 +169,57 @@ describe('applyProperties — 外观', () => {
     expect(result.skipped.some((s) => s.property === 'fills')).toBe(true)
   })
 
-  it('缺少 imageData 的图片填充进 skipped（Penpot 需要 ImageData）', async () => {
+  it('IMAGE 填充带 imageUrl → 走 uploadMediaUrl 落成 fillImage', async () => {
     const rect = await host.createNode({ kind: 'rectangle', name: 'IMG' })
     const result = await host.applyProperties(rect, {
       fills: [{ type: 'IMAGE', imageUrl: 'https://example.com/a.png' }],
     })
-    expect(result.skipped.some((s) => s.property === 'fills' && /imageData/.test(s.reason))).toBe(true)
+    expect(result.skipped).toEqual([])
+    const fills = fake.__all().find((s) => s.name === 'IMG')?.fills as { fillImage?: unknown }[]
+    expect(fills[0].fillImage).toBeDefined()
+    expect(fake.__uploads).toContain('https://example.com/a.png')
+  })
+
+  it('IMAGE 填充既无 imageUrl 也无 imageData → 如实 skipped', async () => {
+    const rect = await host.createNode({ kind: 'rectangle', name: 'IMG0' })
+    const result = await host.applyProperties(rect, {
+      fills: [{ type: 'IMAGE' }],
+    })
+    expect(result.skipped.some((s) => s.property === 'fills' && /既没有 imageUrl 也没有 imageData/.test(s.reason))).toBe(true)
+  })
+
+  it('IMAGE 填充的裸 base64 imageData → 嗅探为 PNG 后走 uploadMediaData', async () => {
+    const rect = await host.createNode({ kind: 'rectangle', name: 'IMGB64' })
+    // 1x1 透明 PNG（裸 base64，无 data: 前缀 —— 客户端渲染引擎的产出形态）
+    const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8AARAAB/wD/AH8AfwAAAABJRU5ErkJggg=='
+    const result = await host.applyProperties(rect, {
+      fills: [{ type: 'IMAGE', imageData: base64 }],
+    })
+    expect(result.skipped).toEqual([])
+    // 名字带 inline. 前缀 + 后缀是嗅探出来的 png（不是拿 base64 去当 URL 拉）
+    expect(fake.__uploads).toContain('inline.png')
+    const fills = fake.__all().find((s) => s.name === 'IMGB64')?.fills as { fillImage?: unknown }[]
+    expect(fills[0].fillImage).toBeDefined()
+  })
+
+  it('同一张内联图重复出现只上传一次（按图片数据缓存）', async () => {
+    const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8AARAAB/wD/AH8AfwAAAABJRU5ErkJggg=='
+    const a = await host.createNode({ kind: 'rectangle', name: 'IMGC1' })
+    const b = await host.createNode({ kind: 'rectangle', name: 'IMGC2' })
+    await host.applyProperties(a, { fills: [{ type: 'IMAGE', imageData: base64 }] })
+    await host.applyProperties(b, { fills: [{ type: 'IMAGE', imageData: base64 }] })
+    expect(fake.__uploads.filter((entry) => entry === 'inline.png')).toHaveLength(1)
+  })
+
+  it('IMAGE 填充的格式不在 Penpot 允许的 5 种里 → 提前如实拒绝（不把宿主报错原样穿透）', async () => {
+    const rect = await host.createNode({ kind: 'rectangle', name: 'IMGAVIF' })
+    // `ftypavif` 头：Penpot 2.18.1 的 image-types 不收 avif
+    const avif = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZg=='
+    const result = await host.applyProperties(rect, {
+      fills: [{ type: 'IMAGE', imageData: avif }],
+    })
+    expect(result.skipped.map((s) => s.reason).join(' ')).toMatch(/image\/avif/)
+    expect(fake.__uploads.some((entry) => entry.includes('inline.avif'))).toBe(false)
   })
 
   it('四边描边走原生 strokes（不创建叠加层）', async () => {
@@ -873,5 +920,91 @@ describe('多 session：文档 id 缺失时不污染存储', () => {
     expect(name).toMatch(/^[A-Z][a-z]+$/)
     expect(fake.localStorage.store.has('mgmcp:codename:unknown')).toBe(false)
     fake.currentFile.id = savedId
+  })
+})
+
+// ───────────────────────── 团队库自动连接（connectLibrary） ─────────────────────────
+//
+// 背景：Penpot 插件能**读**已连接的库，却从不调 `connectLibrary` —— 于是「复用团队组件」
+// 卡在「请先回 Penpot UI 手动连一次」，Demo 2 被它堵住。适配器现在按需自动连。
+
+/** 造一个「可连接但尚未连接」的团队库（含一个能实例化的组件） */
+function makeTeamLibrary(id: string, name: string, componentName: string): unknown {
+  const master = fake.createRectangle()
+  master.name = `${componentName} master`
+  return {
+    id,
+    name,
+    components: [
+      {
+        id: `${id}-comp`,
+        name: componentName,
+        instance: () => {
+          const instance = fake.createRectangle()
+          instance.name = componentName
+          return instance
+        },
+        mainInstance: () => master,
+        isVariant: () => false,
+      },
+    ],
+    colors: [],
+    typographies: [],
+  }
+}
+
+describe('团队库自动连接（connectLibrary）', () => {
+  it('connectTeamLibraries 连上可连接库，并如实报告本次新连了哪些', async () => {
+    fake.library.__addAvailableLibrary(makeTeamLibrary('team-1', 'Team DS', 'Team Button'))
+
+    const info = await host.connectTeamLibraries('Team DS')
+    expect(info.supported).toBe(true)
+    expect(info.newlyConnected.map((lib) => lib.name)).toEqual(['Team DS'])
+    expect(info.connected.some((lib) => lib.id === 'team-1')).toBe(true)
+    expect(fake.library.connected.some((lib) => (lib as { id: string }).id === 'team-1')).toBe(true)
+  })
+
+  it('请求已经连着的库 → 直接成功，不报“不在可列表里”', async () => {
+    const info = await host.connectTeamLibraries('Local')
+    expect(info.newlyConnected).toEqual([])
+    expect(info.reason).toBeUndefined()
+    expect(info.connected.some((lib) => lib.name === 'Local')).toBe(true)
+  })
+
+  it('连上之后 listComponents 能看到团队组件（libraryName 标注来源）', async () => {
+    fake.library.__addAvailableLibrary(makeTeamLibrary('team-1', 'Team DS', 'Team Button'))
+    await host.connectTeamLibraries()
+
+    const components = await host.listComponents()
+    const team = components.find((component) => component.name === 'Team Button')
+    expect(team).toBeDefined()
+    expect(team?.isLocal).toBe(false)
+    expect(team?.libraryName).toBe('Team DS')
+  })
+
+  it('不指定库名导入 → 先把可连库连上再找（Demo 2 的路径）', async () => {
+    fake.library.__addAvailableLibrary(makeTeamLibrary('team-1', 'Team DS', 'Team Button'))
+
+    const result = await host.instantiateComponent({ componentName: 'Team Button' })
+    expect(result.componentId).toBe('team-1-comp')
+    expect(result.libraryName).toBe('Team DS')
+    expect(host.getNodeById(result.nodeId)).not.toBeNull()
+  })
+
+  it('库名不存在 → 报「不在可连接的库列表里」并把候选库列出来', async () => {
+    fake.library.__addAvailableLibrary(makeTeamLibrary('team-1', 'Team DS', 'Team Button'))
+
+    await expect(host.instantiateComponent({ componentName: 'Team Button', libraryName: 'NoSuchLib' }))
+      .rejects.toThrow(/不在可连接的库列表里.*Team DS/s)
+  })
+
+  it('旧宿主没有 connectLibrary/availableLibraries → 如实说能力缺失，不装作连过', async () => {
+    fake.__removeApi('library.availableLibraries')
+    fake.__removeApi('library.connectLibrary')
+
+    const info = await host.connectTeamLibraries('Team DS')
+    expect(info.supported).toBe(false)
+    expect(info.reason).toMatch(/availableLibraries|connectLibrary/)
+    expect(info.newlyConnected).toEqual([])
   })
 })

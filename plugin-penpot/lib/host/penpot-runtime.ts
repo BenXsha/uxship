@@ -1,3 +1,5 @@
+import type { HostLibraryRef, TeamLibraryConnectionInfo } from './types'
+
 /**
  * Penpot 运行时的**窄化读取**工具（形状联合类型上的可缺失成员 / 库池 / 扫描预算）
  *
@@ -50,3 +52,122 @@ export function flexOf(shape: PenpotShape | PenpotContainerShape | null | undefi
  * “大文档上不要挂死”；宿主 `page.findShapes()` 可用时走一次 API 调用，不受此预算约束。
  */
 export const HOST_SCAN_BUDGET = 2000
+
+// ── 团队库连接（自动 connectLibrary） ──
+
+function libraryRef(lib: { id?: string; name?: string } | undefined | null): HostLibraryRef | null {
+  if (!lib?.id) return null
+  return { id: lib.id, name: lib.name || lib.id }
+}
+
+/** 本文件库 + 已连接库（按 id 去重；`connected` 里含本文件库是实测形态） */
+function knownLibraries(): HostLibraryRef[] {
+  const pools = libraryPools()
+  const out: HostLibraryRef[] = []
+  const seen = new Set<string>()
+  for (const lib of [pools.local, ...(Array.isArray(pools.connected) ? pools.connected : [])]) {
+    const ref = libraryRef(lib)
+    if (ref && !seen.has(ref.id)) {
+      seen.add(ref.id)
+      out.push(ref)
+    }
+  }
+  return out
+}
+
+function normalizeLibraryKey(value: unknown): string {
+  return String(value ?? '').trim().toLowerCase()
+}
+
+function libraryMatches(lib: { id?: string; name?: string }, wanted: string): boolean {
+  return normalizeLibraryKey(lib.id) === wanted || normalizeLibraryKey(lib.name) === wanted
+}
+
+/**
+ * 把团队库连上（`library.connectLibrary(id)`）。
+ *
+ * `nameOrId` 给了就连指定库；不给则连上 `availableLibraries()` 里所有还没连的。
+ * 为什么要做：Penpot 插件能**读**已连接的库，却从不调 `connectLibrary` ——
+ * 于是“复用团队组件”卡在“请先回 Penpot UI 手动连一次”。连接是必经步骤，
+ * 不该让模型多记一个工具（见 docs/host-differences.md 与 CONTRIBUTING 的工具面治理）。
+ *
+ * 失败分三种，分别如实上报（见 `TeamLibraryConnectionInfo` 的说明）：能力缺失 / 名字没命中 / 连接抛错。
+ */
+export async function connectTeamLibraries(nameOrId?: string): Promise<TeamLibraryConnectionInfo> {
+  const context = penpot.library
+  const known = knownLibraries()
+
+  if (typeof context?.availableLibraries !== 'function' || typeof context?.connectLibrary !== 'function') {
+    return {
+      connected: known,
+      newlyConnected: [],
+      supported: false,
+      reason: '宿主未提供 library.availableLibraries()/connectLibrary()（旧版 Penpot）',
+    }
+  }
+
+  let available: HostLibraryRef[]
+  try {
+    const listed = await context.availableLibraries()
+    available = listed.map((lib) => libraryRef(lib)).filter((lib): lib is HostLibraryRef => lib !== null)
+  } catch (error) {
+    return {
+      connected: known,
+      newlyConnected: [],
+      supported: true,
+      reason: `availableLibraries() 抛错: ${(error as Error).message}`,
+    }
+  }
+
+  const wanted = normalizeLibraryKey(nameOrId)
+  const knownIds = new Set(known.map((lib) => lib.id))
+
+  // 已经连着（或就是本文件库）→ 直接成功，不要报成“不在可列表里”
+  if (wanted && known.some((lib) => libraryMatches(lib, wanted))) {
+    return { connected: known, newlyConnected: [], supported: true, candidates: available }
+  }
+
+  const targets = wanted
+    ? available.filter((lib) => libraryMatches(lib, wanted))
+    : available.filter((lib) => !knownIds.has(lib.id))
+
+  if (wanted && targets.length === 0) {
+    return {
+      connected: known,
+      newlyConnected: [],
+      supported: true,
+      reason: `不在可连接的库列表里: ${nameOrId}`,
+      candidates: available,
+    }
+  }
+
+  const newlyConnected: HostLibraryRef[] = []
+  const failed: (HostLibraryRef & { error: string })[] = []
+  for (const target of targets) {
+    try {
+      await context.connectLibrary(target.id)
+      newlyConnected.push(target)
+    } catch (error) {
+      failed.push({ ...target, error: (error as Error).message })
+    }
+  }
+
+  // 回读 + 合上刚连上的：宿主未必同步更新 `library.connected`，而调用方马上要用这些库
+  const merged = knownLibraries()
+  const mergedIds = new Set(merged.map((lib) => lib.id))
+  for (const lib of newlyConnected) {
+    if (!mergedIds.has(lib.id)) {
+      mergedIds.add(lib.id)
+      merged.push(lib)
+    }
+  }
+
+  return {
+    connected: merged,
+    newlyConnected,
+    supported: true,
+    candidates: available,
+    ...(failed.length ? { failed } : {}),
+    ...(wanted && !newlyConnected.length && failed.length ? { reason: `连接失败: ${failed.map((f) => f.name).join('、')}` } : {}),
+  }
+}

@@ -559,6 +559,8 @@ export async function handleComponentList(
   _params: Record<string, unknown>,
   context: HandlerContext,
 ): Promise<unknown> {
+  // 组件发现也先把可连接的团队库连上 —— 否则 externalCount 恒为 0（Demo 2 的阻塞点）
+  await context.host.connectTeamLibraries?.()
   const components = await context.host.listComponents()
   const local = components.filter((c) => c.isLocal)
   const external = components.filter((c) => !c.isLocal)
@@ -578,7 +580,7 @@ export async function handleComponentList(
     libraries,
     components,
     hint: external.length === 0
-      ? '没有外部库组件：团队库需先在 Penpot 里连接（本插件暂未接线 connectLibrary，见 ANALYSIS §13）'
+      ? '没有外部库组件：团队库需先在 Penpot 里连接一次（可用 team_library_list 查看可连接的库）'
       : undefined,
   }
 }
@@ -592,6 +594,8 @@ export async function handleComponentSearch(
   const limit = typeof params.limit === 'number' && params.limit > 0 ? params.limit : 50
   if (!query) throw new Error('component/search 需要 query')
 
+  // 搜索也要先把可连接的团队库连上，否则搜不到团队组件（库一旦连上，后续调用是空操作）
+  await context.host.connectTeamLibraries?.()
   const all = await context.host.listComponents()
   const matched: HostComponentInfo[] = []
   for (const component of all) {

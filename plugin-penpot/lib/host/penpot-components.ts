@@ -10,7 +10,7 @@
  * 直接调用 —— 本文件属于 Penpot 宿主适配层（见 README「约定（续）」R1'）。
  */
 import { HostArgumentError, UnsupportedHostFeatureError } from './errors'
-import { libraryPools } from './penpot-runtime'
+import { connectTeamLibraries, libraryPools } from './penpot-runtime'
 import type {
   BooleanOperation,
   CreateVariantsOptions,
@@ -175,12 +175,12 @@ export async function swapComponent(deps: ComponentDeps,
     throw new UnsupportedHostFeatureError('swapComponent', '宿主未提供 shape.swapComponent（旧版 Penpot）')
   }
 
-  const found = findComponentObject(input.componentId, input.componentName, input.libraryName)
+  const found = await findComponentObject(input.componentId, input.componentName, input.libraryName)
   if (!found) {
     throw new HostArgumentError(
       `组件未找到: ${input.componentId ?? input.componentName}` +
       (input.libraryName ? `（库 ${input.libraryName}）` : '') +
-      ' —— 团队库需先 connectLibrary',
+      ' —— 可先用 team_library_list 查看可用库',
     )
   }
 
@@ -276,8 +276,45 @@ export async function listComponents(): Promise<HostComponentInfo[]> {
 
 // ── 组件实例化与变体 ──
 
-/** 在本地库与已连接库里找到原始 LibraryComponent（不是归一化后的 info） */
-function findComponentObject(componentId?: string, componentName?: string, libraryName?: string): {
+/**
+ * 连库后把团队库（+ 本文件库）里的原始 LibraryComponent 找出来（不是归一化后的 info）。
+ *
+ * **会自动连库**：指定了 `libraryName` 时先 `connectLibrary` 那个库；完全没指定且现连库里
+ * 找不到时，把 `availableLibraries()` 里的库连上再找一次 —— 这样
+ * `team_component_import { component: "Button" }` 不用请用户先回 UI 连库（Demo 2 的阻塞点）。
+ */
+async function findComponentObject(componentId?: string, componentName?: string, libraryName?: string): Promise<{
+  component: PenpotLibraryComponent
+  library?: PenpotLibrary
+} | null> {
+  const wanted = libraryName?.trim()
+
+  if (wanted) {
+    // 指定了库：先确保它可用（能连就连），连不上时说清是“能力缺失 / 名字没命中 / 连接失败”
+    const info = await connectTeamLibraries(wanted)
+    const wantedKey = wanted.toLowerCase()
+    const matched = info.connected.some((lib) => lib.id === wanted || lib.name.trim().toLowerCase() === wantedKey)
+    if (!matched) {
+      const candidates = info.candidates?.length
+        ? `；可连的库: ${info.candidates.map((lib) => `${lib.name}(${lib.id})`).join('、')}`
+        : ''
+      throw new HostArgumentError(`团队库不可用: ${wanted} —— ${info.reason ?? '不在可连接的库列表里'}${candidates}`)
+    }
+  }
+
+  const found = searchComponentObject(componentId, componentName, wanted)
+  if (found) return found
+
+  // 没指定库、现连库里也没有 → 把所有可连的库连上再找一次（首次导入的常见情形）
+  if (!wanted) {
+    const info = await connectTeamLibraries()
+    if (info.newlyConnected.length) return searchComponentObject(componentId, componentName, wanted)
+  }
+  return null
+}
+
+/** 在“已经可用的库”（本文件库 + 已连接）里按 id/名查找；连库由 `findComponentObject` 负责 */
+function searchComponentObject(componentId?: string, componentName?: string, libraryName?: string): {
   component: PenpotLibraryComponent
   library?: PenpotLibrary
 } | null {
@@ -296,15 +333,6 @@ function findComponentObject(componentId?: string, componentName?: string, libra
     }
   }
 
-  // 指定了库名却没命中 → 明确区分"库不存在"与"库里没这个组件"
-  if (wantedLibrary) {
-    const known = pools.find((pool) => (pool.name ?? '').trim().toLowerCase() === wantedLibrary)
-    if (!known) {
-      throw new HostArgumentError(
-        `团队库未连接或不存在: ${libraryName}（Penpot 需先在 UI 里连接该库；本插件暂未接线 connectLibrary）`,
-      )
-    }
-  }
   return null
 }
 
@@ -322,7 +350,7 @@ export async function instantiateComponent(deps: ComponentDeps, input: {
   if (!input.componentId && !input.componentName) {
     throw new HostArgumentError('instantiateComponent 需要 componentId 或 componentName')
   }
-  const found = findComponentObject(input.componentId, input.componentName, input.libraryName)
+  const found = await findComponentObject(input.componentId, input.componentName, input.libraryName)
   if (!found) {
     throw new HostArgumentError(
       `组件未找到: ${input.componentId ?? input.componentName}` +

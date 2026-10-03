@@ -631,7 +631,7 @@ export class MemoryHost implements HostAdapter {
       )
       if (!known) {
         throw new HostArgumentError(
-          `团队库未连接或不存在: ${input.libraryName}（Penpot 需先在 UI 里连接该库；本插件暂未接线 connectLibrary）`,
+          `团队库未连接或不存在: ${input.libraryName}（MemoryHost 替身不建模 connectLibrary；真实宿主会在导入时自动连接）`,
         )
       }
     }
