@@ -128,6 +128,113 @@ degradations:
 2. do icons actually have ink in the right box?
 3. is `hasStructuralSkips` set?
 
+## Images: the engine delivers a fill, Penpot does not land it
+
+An image reaches the pipeline three ways. Two of them end in an `IMAGE` fill, and that fill currently
+stops at the Penpot adapter while MasterGo renders it.
+
+| Authored as | Engine → DSL | MasterGo | Penpot |
+|---|---|---|---|
+| `<img src>` | fill `{type:'image', imageUrl, imageData?}` | IMAGE fill → `imageRef` | **skipped** (Gap 2) |
+| CSS `background-image: url(…)` | fill `{type:'image', …}`, one per layer | IMAGE fill → `imageRef` | **skipped** (Gap 2) |
+| node-level `imageUrl` (hand-written DSL) | `element.imageUrl` | image node | **works** — `uploadMediaUrl`, cached per URL |
+
+### Gap 1 (fixed) — the engine used to drop every `<img>` fill
+
+Until 2026-10-03 `useClientRender` (both `plugin-penpot/ui/composables/useClientRender.ts` and
+`plugin-mastergo/ui/composables/useClientRender.ts`) extracted the `<img>` as `imgFill`, then
+`extractBackgroundFills()` returned `null` whenever an `imgFill` existed — and the caller only
+assigned the node's fills when that result was truthy, so the `imgFill` was never attached:
+
+```ts
+if (imgFill) return null                            // extractBackgroundFills
+…
+if (fills) node.fills = imgFill ? [imgFill] : fills // never ran when imgFill was set
+```
+
+The `<img>` node came out with the right name, size and radius but **no `fills` key at all**. The
+fill is now assigned explicitly, and the harness check that had gone red (`远程图片被识别为图片填充`)
+is green again. It is recorded here because it is why "images work" was believed while no HTML image
+had ever reached a canvas — and because the fill now arrives at the adapter and meets Gap 2.
+
+### Gap 2 — the Penpot adapter never wires IMAGE fills
+
+`toPenpotFills()` has an IMAGE branch that **always** reports a skip and continues, even when the DSL
+carries `imageData` (`plugin-penpot/lib/host/penpot-paint.ts`). MasterGo consumes
+`imageData` / `imageUrl` into an `imageRef` (`plugin-mastergo/lib/api/dsl-renderer.ts`), so the
+server-side prefetch `enrichDslWithImageData()` (`mcp-server/src/utils/code-to-design-service.ts`)
+is **dead code** — exported, never called, and only MasterGo would have benefited.
+
+Penpot only has the node-level `imageUrl` path (`penpot.ts` `case 'imageUrl'` → `uploadMediaUrl` /
+`uploadMediaData`, cached by URL). The engine never emits `imageUrl` for HTML, so in practice HTML
+images never reach a Penpot canvas.
+
+### Gap 3 — the capability flag contradicted the adapter
+
+`probe()` reported `props.imageFills: true` while the fill path skipped every IMAGE fill. That is the
+same "host has it / adapter does not" case `gridLayout` is careful about, so `imageFills` is now
+`false` until Gap 2 is wired; `imageFromUrl` stays `true` because the node-level path really works.
+
+### What Penpot can and cannot express
+
+Checked against the vendor types at the host version in use (`api_types.yml` at tag `2.18.1`,
+byte-for-byte the same as `develop`) and the published `@penpot/plugin-types`:
+
+- **No image scale mode.** `Fill` exposes only `fillImage`; `imageScaleMode` / `scaleMode` appears
+  nowhere in the API. `FILL` / `FIT` / `TILE` cannot be requested, and the adapter currently drops
+  the field silently — it should be reported in `skipped` like any other unrepresentable property.
+- `ImageData` does carry `keepAspectRatio?: boolean` ("keep the aspect ratio of the image when
+  resizing", default false), but the API member list marks it `readonly`. Whether Penpot honours it
+  when present on the object assigned to `fillImage` is a live-host probe, not something the types
+  settle.
+- **Our `PenpotImageData` declaration had drifted** (`typings/penpot.d.ts`): `data` was declared a
+  base64 `string` and `id` optional, while the vendor type is `id: string` and
+  `data(): Promise<Uint8Array>`. Nothing read either field, so the drift was latent — corrected now.
+
+### Server-side rules that decide whether a remote URL lands
+
+From the Penpot 2.18.1 backend (`app/media.clj`, `app/media/validation.clj`, `app/common/media.cljc`):
+
+| Rule | Value | Consequence |
+|---|---|---|
+| Allowed image MIME types | `jpeg`, `png`, `webp`, `gif`, `svg+xml` — five only | `avif` / `bmp` / `tiff` are rejected `media-type-not-allowed` |
+| `media-max-file-size` | 30 MiB default | larger files rejected; our prefetch caps at **10 MiB** and only allows HTTPS, so it is stricter |
+| `uploadMediaUrl` transport | backend fetches the URL, max 3 redirects | works from the plugin iframe without CORS, but sends no client cookies / auth |
+| `Content-Length` | **required** | a chunked response with no length fails as `unknown-size` |
+| SVG | sanitized (`sanitize-svg`), no thumbnail | scripts / `foreignObject` are stripped before storage |
+| Processing | ImageMagick, rate-limited (`process-image/by-profile`, `process-image/global`) | bulk image renders can hit a quota; cost is per upload, not per reference |
+
+`uploadMediaData` goes through the same MIME and size validation, so any future `imageData` path has
+to respect the same five formats and 30 MiB.
+
+### Export (`node_export_image`)
+
+- `Export` is `{type, scale?, suffix?, skipChildren?}` — **no alpha / background / quality option**.
+  Transparency is whatever the format keeps: PNG and WEBP keep it, JPEG flattens it. There is no way
+  to ask for a matte or a background colour.
+- 2.18.1 accepts `png | jpeg | webp | svg | pdf` for `type` (older `@penpot/plugin-types` releases
+  omit `webp` — do not read the published types as the host's capability set). `scale` is the only
+  sizing knob, so `constraint: WIDTH/HEIGHT` is converted to a scale and the response says so;
+  SVG / PDF scale is host-dependent and not assumed to have taken effect.
+- `suffix` and `skipChildren` are unused by our contract.
+
+### Component carry-over does not include images
+
+`swapComponent` / `carryOverOverrides` carry **text content and hidden state, by layer name**, and
+nothing else (`lib/api/swapComponentHandlers.ts`). An image fill is an override like any other: it is
+not carried onto a replacement, and `resetOverrides` (the `carryOverOverrides: false` path) discards
+it. An instance swap therefore keeps the master's image, never the instance's.
+
+### Still to measure on a live host
+
+Code and vendor types settle the above. These need a running Penpot with a connected plugin, and are
+listed so "not yet measured" is not read as "verified":
+
+1. whether an `ImageData` carrying `keepAspectRatio: true` changes the fill's fit when assigned to
+   `fillImage`;
+2. behaviour at the 30 MiB boundary and with a `Content-Length`-less URL;
+3. whether `webp` export succeeds end-to-end through `shape.export` on 2.18.1.
+
 ## Design tokens: different models
 
 | | MasterGo | Penpot |

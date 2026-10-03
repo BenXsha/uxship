@@ -48,13 +48,20 @@ type PenpotGradient = {
 }
 
 interface PenpotImageData {
-  id?: string
+  /** 官方声明为**必填**（旧版本文件写成可选，已按 vendor 类型纠正） */
+  id: string
   name?: string
   width: number
   height: number
   mtype?: string
-  /** 官方类型中为 base64 字符串 */
-  data?: string
+  /**
+   * 是否保持宽高比（即图片填充的 fit / fill 取向）。
+   * ⚠️ 官方成员列表标了 `readonly`：插件读得到、设不了 —— 所以 DSL 的 `imageScaleMode` 落不到这里
+   * （见 `docs/host-differences.md`「Images」）。默认 false。
+   */
+  keepAspectRatio?: boolean
+  /** 官方类型是**方法**（返回字节数组），不是 base64 字符串 —— 旧版本文件写错过。 */
+  data(): Promise<Uint8Array>
 }
 
 // ─── 样式 ─────────────────────────────────────────────────

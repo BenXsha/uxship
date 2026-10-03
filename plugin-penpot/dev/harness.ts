@@ -63,9 +63,12 @@ function summarizeDsl(dsl: any) {
     rootLayoutMode: root?.layoutMode,
     types: [...new Set(flat.map((n) => n.type))],
     fillTypes: [...new Set(flat.flatMap((n) => (n.fills || []).map((f: any) => f.type)))],
-    hasGradient: flat.some((n) => (n.fills || []).some((f: any) => String(f.type).startsWith('GRADIENT'))),
-    hasImageFill: flat.some((n) => n.imageUrl || (n.fills || []).some((f: any) => f.type === 'IMAGE')),
-    hasSvg: flat.some((n) => n.type === 'svg' && n.svgContent),
+    // 填充/节点类型自引擎归一化后统一小写（`gradient_linear` / `image`），比较前先大写。
+    hasGradient: flat.some((n) => (n.fills || []).some((f: any) => String(f.type).toUpperCase().startsWith('GRADIENT'))),
+    hasImageFill: flat.some((n) => n.imageUrl || (n.fills || []).some((f: any) => String(f.type).toUpperCase() === 'IMAGE')),
+    // 解析后的图标/内联 SVG 以 `{ type: 'frame', svgContent }` 表达（见 extractSvgResultNode），
+    // 落宿主时由 DSL 渲染器在内容区建一个 SVG 子节点 —— 不是旧的 `type: 'svg'`。
+    hasSvg: flat.some((n) => Boolean(n.svgContent)),
     textContents: flat.filter((n) => n.type === 'text').map((n) => String(n.content ?? '').slice(0, 24)),
     hasPerCornerRadius: flat.some((n) => n.cornerRadius !== undefined || n.topLeftRadius !== undefined),
     unresolvedClasses: dsl?._unresolvedClasses ?? [],
@@ -129,6 +132,7 @@ async function run(): Promise<HarnessResult> {
   }
 }
 
+// SAFETY: `window.__harness` 是本文件 `publish()` 注入的调试钩子，不属于标准 Window 类型；断言后仍按可选字段读（未注入时为 undefined）。
 const target = window as unknown as { __harness?: HarnessResult | { status: string; error: string } }
 
 /**
@@ -163,12 +167,15 @@ function publish(result: HarnessResult | { status: string; error: string }): voi
  *   await window.__renderHtml('<section data-name="X" ...>…</section>')
  *   → { dsl, created }   dsl = 引擎产出（含它实测的 size），created = 落地后的节点
  */
+// SAFETY: `window.__renderHtml` 是本文件末尾挂载的调试钩子；断言后用前仍以 `?.` 判定缺失分支。
 const debugTarget = window as unknown as {
   __renderHtml?: (html: string, options?: { width?: number }) => Promise<unknown>
 }
 
-debugTarget.__renderHtml = async (html: string, options: { width?: number } = {}) => {
+// `options` 预留给调用方（曾用于指定渲染宽度），当前实现不用它 —— 前缀 `_` 表明是有意保留的签名。
+debugTarget.__renderHtml = async (html: string, _options: { width?: number } = {}) => {
   const renderer = useClientRender()
+  // SAFETY: `useClientRender()` 返回对象上的 `renderHtml` 未收进公开类型；断言仅用于调用，返回值形状由本文件自查。
   const dsl = (await (renderer as unknown as {
     renderHtml: (input: string) => Promise<Record<string, unknown>>
   }).renderHtml(html)) as { elements?: unknown[] }

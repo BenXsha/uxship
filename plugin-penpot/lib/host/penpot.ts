@@ -195,8 +195,12 @@ export class PenpotHost implements HostAdapter {
         // Penpot 的 Stroke 只有 strokeAlignment + caps，没有 per-side（§12.5）
         perSideStrokes: false,
         gradients: true,
-        imageFills: true,
-        // 能否把远程 URL 拉成图片数据 —— Penpot 靠 uploadMediaUrl（后端代拉，不受 CORS 限制）
+        // 宿主**有**图片填充（`shape.fills = [{ fillImage }]`），但**本适配器尚未接线** DSL 的 IMAGE 填充：
+        // `toPenpotFills()` 对 IMAGE 一律如实 skip（见 docs/host-differences.md「Images」）。
+        // 与 gridLayout 同一口径：别把「我们没做」写成「宿主没有」。接线后改成 true。
+        imageFills: false,
+        // 节点级 `imageUrl` 已接线（`uploadMediaUrl` / `uploadMediaData`，按 URL 缓存）——
+        // 这条是真能用的，且不受插件 iframe 的 CORS 限制（Penpot 后端代拉）。
         imageFromUrl: has(penpot.uploadMediaUrl),
         effects: true,
         // blur / backgroundBlur 是两个独立成员，能力齐备

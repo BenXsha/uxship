@@ -108,6 +108,10 @@ names a concrete one. See [`host-differences.md`](host-differences.md).
 - Multi-layer CSS `background` / `background-image` maps to one DSL fill per layer.
 - Some host limitations have no DSL equivalent and are reported rather than silently dropped — per-side
   strokes and conic gradients are the usual two.
+- An image is a fill like any other, but the hosts do not meet it equally: MasterGo converts an
+  `IMAGE` fill's `imageData` / `imageUrl` into an image ref, Penpot currently reports the same fill
+  as skipped, and `<img>` fills must survive the engine before either host sees them. Read
+  [host-differences.md](host-differences.md) before assuming an image landed.
 
 ## Templates and trees
 

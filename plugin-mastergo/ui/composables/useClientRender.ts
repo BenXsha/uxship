@@ -785,7 +785,12 @@ export function useClientRender() {
     const fills = extractBackgroundFills(element, cs, imgFill, width, height, elemName)
     // 注：文本节点的背景填充在下面 `extractTextContent` 里会被文字颜色覆盖；
     // 无文字的文本元素（如空 `<p class="bg-x">` 装饰块）会转成 frame，背景保留。
-    if (fills) node.fills = imgFill ? [imgFill] : fills
+    //
+    // ⚠️ `<img>` 必须先判 `imgFill`：有图片时 `extractBackgroundFills` 返回 null
+    // （背景图与 `<img>` 二选一），所以 `if (fills)` 为假 → 图片填充被整个丢掉。
+    // 症状是「节点尺寸/圆角都在，就是没有图」，两个宿主都踩过（见 docs/host-differences.md）。
+    if (imgFill) node.fills = [imgFill]
+    else if (fills) node.fills = fills
 
     extractBorderRadius(element, cs, node)
     extractStrokes(cs, node)
