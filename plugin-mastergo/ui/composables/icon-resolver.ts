@@ -41,7 +41,11 @@ async function resolveIcon(el: HTMLElement): Promise<void> {
       svg = svg.replace(/currentColor/gi, color)
     }
     ;(el as any).__resolvedSvg = svg
-  } catch {}
+  } catch (error) {
+    // 取不到图标只是“这个图标没有矢量内容”，不该中断整页渲染 —— 但必须留一条可见日志，
+    // 否则「图标没渲染」会被当成引擎/宿主的问题去查（网络失败与解析失败也会被混在一起）。
+    console.warn(`[resolveIcon] 获取图标失败: ${prefix}:${name}`, error)
+  }
 }
 
 export async function resolveDataIcons(root: Element): Promise<void> {
@@ -69,10 +73,13 @@ export async function resolveBgImageData(root: Element, imageDataCache: Map<stri
         const url = urlMatch[1]
         console.log('[resolveBgImageData] 发现 data URL')
         if (!imageDataCache.has(url)) {
-          const comma = url.indexOf(',')
-          if (comma >= 0) {
-            imageDataCache.set(url, url.substring(comma + 1))
-            console.log('[resolveBgImageData] 缓存 base64, 长度=', imageDataCache.get(url)?.length)
+          // 只有 `;base64` 的才是 base64。percent-encoded 的 data URI（SVG 常见）以前被当成
+          // base64 原样写进 `imageData` → DSL 里是 `%3Csvg…`，宿主解码直接失败。
+          // （Penpot 侧同一处修在 `plugin-penpot/ui/composables/icon-resolver.ts`）
+          const base64 = dataUriToBase64Payload(url)
+          if (base64 !== undefined) {
+            imageDataCache.set(url, base64)
+            console.log('[resolveBgImageData] 缓存图片数据, 长度=', base64.length)
           }
         }
         ;(el as any).__bgImageData = imageDataCache.get(url)
@@ -80,4 +87,24 @@ export async function resolveBgImageData(root: Element, imageDataCache: Map<stri
       }
     }
   }
+}
+
+/**
+ * data URI → base64 载荷（DSL `imageData` 口径）。非 data URI 返回 undefined。
+ *
+ * 引擎跑在**插件 UI iframe**（真实浏览器上下文），`TextEncoder`/`btoa` 可用；
+ * 与 ``plugin-penpot`` 的 `lib/host/media.ts` 同逻辑（两份引擎各自打包，无法共享模块）。
+ */
+function dataUriToBase64Payload(url: string): string | undefined {
+  if (!url.startsWith('data:')) return undefined
+  const comma = url.indexOf(',')
+  if (comma < 0) return undefined
+  const meta = url.slice(0, comma)
+  const payload = url.slice(comma + 1)
+  if (/;base64/i.test(meta)) return payload
+
+  const bytes = new TextEncoder().encode(decodeURIComponent(payload))
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i])
+  return btoa(binary)
 }

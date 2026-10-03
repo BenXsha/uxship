@@ -9,10 +9,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   PENPOT_MEDIA_MAX_BYTES,
+  base64FromBytes,
+  dataUriToBase64Payload,
   decodeBase64,
   penpotMediaRejection,
   sniffImageMime,
   utf8Bytes,
+  utf8Decode,
 } from '@lib/host/media'
 
 const bytesOf = (text: string): Uint8Array => Uint8Array.from([...text].map((ch) => ch.charCodeAt(0)))
@@ -45,6 +48,34 @@ describe('host/media：Penpot 媒体规则', () => {
   it('utf8Bytes 与 Node Buffer 的 UTF-8 结果一致（含非 ASCII）', () => {
     const sample = 'a<svg/>图🙂'
     expect(Array.from(utf8Bytes(sample))).toEqual(Array.from(Buffer.from(sample, 'utf8')))
+  })
+
+  it('utf8Decode 与 utf8Bytes 互逆，且不依赖 TextDecoder（SVG 导出走它）', () => {
+    const sample = 'a<svg/>图🙂'
+    expect(utf8Decode(utf8Bytes(sample))).toBe(sample)
+
+    const saved = globalThis.TextDecoder
+    // SAFETY: 只为测试把 TextDecoder 换成“一用就抛”的桩，类型仍是 typeof TextDecoder；用完恢复。
+    globalThis.TextDecoder = (function TextDecoder() {
+      throw new Error('TextDecoder is not a constructor')
+    }) as unknown as typeof TextDecoder
+    try {
+      expect(utf8Decode(utf8Bytes(sample))).toBe(sample)
+    } finally {
+      globalThis.TextDecoder = saved
+    }
+  })
+
+  it('dataUriToBase64Payload：base64 原样透传，percent-encoded 先解码再编码，非 data URI 返回 undefined', () => {
+    expect(dataUriToBase64Payload('data:image/png;base64,AAAA')).toBe('AAAA')
+
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>图</text></svg>'
+    const encoded = `data:image/svg+xml,${encodeURIComponent(svg)}`
+    // 旧实现把 `%3Csvg…` 原样当 base64，下游 decodeBase64 直接失败
+    expect(dataUriToBase64Payload(encoded)).toBe(Buffer.from(svg, 'utf8').toString('base64'))
+
+    expect(dataUriToBase64Payload('https://example.com/a.png')).toBeUndefined()
+    expect(base64FromBytes(Uint8Array.from([0x41, 0x42]))).toBe(Buffer.from('AB').toString('base64'))
   })
 
   it('预检：不在 5 种之内 / 超过 30 MiB 都给可读原因；合规返回 null', () => {

@@ -96,6 +96,72 @@ export function utf8Bytes(value: string): Uint8Array {
   return new Uint8Array(out)
 }
 
+/** 字节 → base64。注：`btoa` 在插件沙箱里**有**（`atob` 也用过），沙箱里缺的是 `TextEncoder`/`TextDecoder`。 */
+export function base64FromBytes(bytes: Uint8Array): string {
+  let binary = ''
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i])
+  return btoa(binary)
+}
+
+/**
+ * data URI → base64 载荷（DSL `imageData` 字段的口径）。非 data URI 返回 undefined。
+ *
+ * ⚠️ 只有 `;base64` 的才是 base64。percent-encoded 的 data URI（SVG 常见）必须把
+ * `decodeURIComponent` 的结果按 UTF-8 编码再 base64 —— 旧代码一律 `url.substring(comma+1)`，
+ * 于是 DSL 里写进一段 `%3Csvg…`，下游 `decodeBase64` 直接失败（真机背景图踩到过）。
+ */
+export function dataUriToBase64Payload(url: string): string | undefined {
+  if (!url.startsWith('data:')) return undefined
+  const comma = url.indexOf(',')
+  if (comma < 0) return undefined
+  const meta = url.slice(0, comma)
+  const payload = url.slice(comma + 1)
+  return /;base64/i.test(meta) ? payload : base64FromBytes(utf8Bytes(decodeURIComponent(payload)))
+}
+
+/**
+ * UTF-8 解码（与 `utf8Bytes` 互逆）。
+ *
+ * ⚠️ 同样不能依赖 `TextDecoder` —— SVG 导出（`shape.export` 返回 Uint8Array）走的就是它，
+ * 真机报 `Internal error: TextDecoder is not a constructor`。非法序列退化成 U+FFFD，不抛错。
+ */
+export function utf8Decode(bytes: Uint8Array): string {
+  let out = ''
+  let i = 0
+  while (i < bytes.length) {
+    const b0 = bytes[i]
+    let cp: number
+    let extra: number
+    if (b0 < 0x80) {
+      cp = b0
+      extra = 0
+    } else if ((b0 & 0xe0) === 0xc0) {
+      cp = b0 & 0x1f
+      extra = 1
+    } else if ((b0 & 0xf0) === 0xe0) {
+      cp = b0 & 0x0f
+      extra = 2
+    } else if ((b0 & 0xf8) === 0xf0) {
+      cp = b0 & 0x07
+      extra = 3
+    } else {
+      cp = 0xfffd
+      extra = 0
+    }
+    i += 1
+    for (let k = 0; k < extra; k += 1) {
+      if (i >= bytes.length || (bytes[i] & 0xc0) !== 0x80) {
+        cp = 0xfffd
+        break
+      }
+      cp = (cp << 6) | (bytes[i] & 0x3f)
+      i += 1
+    }
+    out += String.fromCodePoint(cp)
+  }
+  return out
+}
+
 function ascii(bytes: Uint8Array, start: number, length: number): string {
   let out = ''
   for (let i = start; i < start + length && i < bytes.length; i += 1) out += String.fromCharCode(bytes[i])

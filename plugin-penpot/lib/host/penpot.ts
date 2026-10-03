@@ -36,7 +36,7 @@ import * as tokens from './penpot-tokens'
 import * as textRuns from './penpot-text'
 import { penpotCapFor, toPenpotEffects, toPenpotFills, toPenpotStrokes } from './penpot-paint'
 import { isFillVisible, normalizeFillType } from './gradient'
-import { decodeBase64, inlineMediaName, mimeTypeFromUrl, penpotMediaRejection, sniffImageMime, utf8Bytes } from './media'
+import { decodeBase64, inlineMediaName, mimeTypeFromUrl, penpotMediaRejection, sniffImageMime, utf8Bytes, utf8Decode } from './media'
 import {
   PENPOT_CORNER_KEYS,
   PENPOT_PADDING_KEYS,
@@ -1221,7 +1221,7 @@ export class PenpotHost implements HostAdapter {
       const cached = this.imageDataCache.get(source)
       if (cached) return cached
       // 裸 base64 没有标签，用 imageUrl 的后缀做第二线索（data URI 自带 MIME）
-      const uploaded = await this.requireUploadMediaData(this.decodeInlineImage(source, inline ? url : undefined))
+      const uploaded = await this.uploadInlineImage(source, inline ? url : undefined)
       this.imageDataCache.set(source, uploaded)
       return uploaded
     }
@@ -1278,6 +1278,25 @@ export class PenpotHost implements HostAdapter {
     return { name: inlineMediaName(mimeType as string), data: bytes, mimeType: mimeType as string }
   }
 
+  /**
+   * 内联图片（裸 base64 / data URI）→ `ImageData`。
+   *
+   * ⚠️ **SVG 走不通**：Penpot 的 `uploadMediaData` 会把 `image/svg+xml` 的 blob 路由到
+   * **SVG 导入通道**（`process-blobs` 的 `svg-blob?` 分支），`Promise` 解析到的是解析后的
+   * SVG 数据而不是 `ImageData`；宿主随后以 `Code: :fills` 拒绝这个 fill —— 一句看不出
+   * 原因的错误。这里提前挡住，给可执行的替代方案（远程位图 / vector 元素）。
+   */
+  private async uploadInlineImage(value: string, hintUrl?: string): Promise<PenpotImageData> {
+    const decoded = this.decodeInlineImage(value, hintUrl)
+    if (decoded.mimeType === 'image/svg+xml') {
+      throw new Error(
+        'Penpot 的 uploadMediaData 把 SVG 走图形导入通道（拿不到 ImageData），内联 SVG 无法作为图片填充；' +
+          '请改用 vector 元素（svgContent）/ data-icon，或换成远程位图 URL',
+      )
+    }
+    return await this.requireUploadMediaData(decoded)
+  }
+
   /** `uploadMediaData` 是可选能力（旧宿主没有）；缺失时给明确原因而不是静默丢图 */
   private async requireUploadMediaData(input: { name: string; data: Uint8Array; mimeType: string }): Promise<PenpotImageData> {
     const uploaded = await this.uploadMediaBinary(input)
@@ -1316,7 +1335,7 @@ export class PenpotHost implements HostAdapter {
   ): Promise<{ fills: PenpotFill[]; error?: string }> {
     const cached = this.imageDataCache.get(url)
     try {
-      const imageData = cached ?? await this.requireUploadMediaData(this.decodeInlineImage(url))
+      const imageData = cached ?? await this.uploadInlineImage(url)
       if (!cached) this.imageDataCache.set(url, imageData)
       void scaleMode
       return { fills: [{ fillImage: imageData, fillOpacity: 1 }] }
@@ -1501,7 +1520,8 @@ export class PenpotHost implements HostAdapter {
       format: type,
       mimeType: mimeMap[type] ?? 'application/octet-stream',
       isText,
-      data: isText ? new TextDecoder().decode(bytes) : bytesToBase64(bytes),
+      // ⚠️ 不能用 `TextDecoder`：插件沙箱里没有它（真机 SVG 导出报 `Internal error: TextDecoder is not a constructor`）。
+      data: isText ? utf8Decode(bytes) : bytesToBase64(bytes),
       scale,
       notes,
     }

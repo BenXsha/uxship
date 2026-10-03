@@ -1,3 +1,5 @@
+import { dataUriToBase64Payload } from '../../lib/host/media'
+
 export async function waitForImages(container: HTMLElement): Promise<void> {
   const imgs = Array.from(container.querySelectorAll('img'))
   if (imgs.length === 0) return
@@ -41,7 +43,11 @@ async function resolveIcon(el: HTMLElement): Promise<void> {
       svg = svg.replace(/currentColor/gi, color)
     }
     ;(el as any).__resolvedSvg = svg
-  } catch {}
+  } catch (error) {
+    // 取不到图标只是“这个图标没有矢量内容”，不该中断整页渲染 —— 但必须留一条可见日志，
+    // 否则「图标没渲染」会被当成引擎/宿主的问题去查（网络失败与解析失败也会被混在一起）。
+    console.warn(`[resolveIcon] 获取图标失败: ${prefix}:${name}`, error)
+  }
 }
 
 export async function resolveDataIcons(root: Element): Promise<void> {
@@ -69,10 +75,12 @@ export async function resolveBgImageData(root: Element, imageDataCache: Map<stri
         const url = urlMatch[1]
         console.log('[resolveBgImageData] 发现 data URL')
         if (!imageDataCache.has(url)) {
-          const comma = url.indexOf(',')
-          if (comma >= 0) {
-            imageDataCache.set(url, url.substring(comma + 1))
-            console.log('[resolveBgImageData] 缓存 base64, 长度=', imageDataCache.get(url)?.length)
+          // 只有 `;base64` 的才是 base64；percent-encoded 的（SVG 常见）先解码再编码 ——
+          // 旧代码一律当 base64，于是 DSL 里写进一段 `%3Csvg…`，适配器 decodeBase64 直接失败。
+          const base64 = dataUriToBase64Payload(url)
+          if (base64 !== undefined) {
+            imageDataCache.set(url, base64)
+            console.log('[resolveBgImageData] 缓存图片数据, 长度=', base64.length)
           }
         }
         ;(el as any).__bgImageData = imageDataCache.get(url)

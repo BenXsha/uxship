@@ -94,6 +94,8 @@ export interface FakeShape {
   bringToFront(): void
   sendToBack(): void
   applyToken(token: unknown, properties?: string[]): void
+  /** 导出为字节（Penpot：`shape.export({type, scale})`）。SVG 返回带非 ASCII 的文本，锁 UTF-8 解码。 */
+  export(config: { type?: string; scale?: number }): Uint8Array
   /** 已绑定的令牌（键=属性名，值=令牌名）；未绑定时为 undefined —— 与真机 `shape.tokens` 同形 */
   tokens?: Record<string, string>
 }
@@ -423,6 +425,22 @@ export function createFakePenpot(options: FakePenpotOptions = {}): FakePenpot {
       },
       rotate() {
         /* noop */
+      },
+      export(config: { type?: string }) {
+        if (config?.type === 'svg') {
+          // 带非 ASCII（真机 SVG 导出走的是插件主进程的 UTF-8 解码；沙箱里没有 TextDecoder）
+          const text = `<svg xmlns="http://www.w3.org/2000/svg"><text>${this.name} 图</text></svg>`
+          const bytes: number[] = []
+          for (const ch of text) {
+            const cp = ch.codePointAt(0) as number
+            if (cp < 0x80) bytes.push(cp)
+            else if (cp < 0x800) bytes.push(0xc0 | (cp >> 6), 0x80 | (cp & 0x3f))
+            else bytes.push(0xe0 | (cp >> 12), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f))
+          }
+          return Uint8Array.from(bytes)
+        }
+        // PNG 魔数（导出路径不校验内容，给个形状即可）
+        return Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
       },
       clone() {
         const copy = makeShape(this.type, { name: this.name, x: this.x, y: this.y })

@@ -248,6 +248,23 @@ response. Two consequences:
 - **offline fakes do not validate bytes**, so a corrupt fixture (a bad IDAT CRC, say) passes every unit
 test and only fails on the real canvas. Validate test images at least once (`zlib`/`file`).
 
+### SVG cannot be an image fill on Penpot
+
+`penpot.uploadMediaData` routes an `image/svg+xml` blob away from media: `process-blobs` sends SVG
+blobs down the **SVG-import branch** (`svg->clj`) instead of `upload-blob`, so the promise resolves to
+parsed SVG data, not an `ImageData`. The host then rejects the fill with
+`Value not valid: [… {:fill-image {:name "inline.svg"}}]. Code: :fills` — a message that names the
+symptom, never the cause.
+
+The adapter rejects inline SVG itself, before uploading, with a reason that says what to do instead
+(remote bitmap, or `svgContent` / `data-icon` for a vector). A **remote** SVG URL goes through
+`uploadMediaUrl` instead (backend fetch, different path) — on 2.18.1 that failed here too
+(`http error` for one host, timeout for another), so treat SVG-as-image-fill as unreliable on Penpot
+and let the vector path own SVG.
+
+This is a host routing behaviour, not a size or MIME rule: `image/svg+xml` *is* in Penpot's allowed
+`image-types`, and the backend stores SVGs fine — the plugin entry point is what diverges.
+
 ### Export (`node_export_image`)
 
 - `Export` is `{type, scale?, suffix?, skipChildren?}` — **no alpha / background / quality option**.
@@ -257,6 +274,9 @@ test and only fails on the real canvas. Validate test images at least once (`zli
   omit `webp` — do not read the published types as the host's capability set). `scale` is the only
   sizing knob, so `constraint: WIDTH/HEIGHT` is converted to a scale and the response says so;
   SVG / PDF scale is host-dependent and not assumed to have taken effect.
+- `shape.export()` returns bytes for **every** format, including SVG. Decoding those bytes to text is
+  the adapter's job, and it must not use `TextDecoder` — SVG export is where the sandbox constraint
+  first bit (`Internal error: TextDecoder is not a constructor`).
 - `suffix` and `skipChildren` are unused by our contract.
 
 ### Component carry-over does not include images
@@ -270,20 +290,24 @@ it. An instance swap therefore keeps the master's image, never the instance's.
 
 Measured on 2.18.1 with the plugin connected:
 
-- `uploadMediaUrl` **works** — a remote HTTPS URL lands as an image fill with empty `skipped`;
-- the plugin sandbox has **no `TextDecoder`/`TextEncoder`** (see above) — found this way;
-- a corrupt image is rejected by ImageMagick with only `http error` surfaced (see above).
+- `uploadMediaUrl` **works** — a remote HTTPS bitmap lands as an image fill with empty `skipped`;
+- `uploadMediaData` **works** for bitmaps — data-URI PNG and GIF both land (the first probe that failed
+  used a corrupt fixture, see above);
+- `image/avif` is rejected with the readable "not one of the five" reason rather than a host error;
+- `png` and `webp` export work; `svg` export works once the adapter stops calling `TextDecoder`;
+- the plugin sandbox has **no `TextDecoder`/`TextEncoder`** — found by the avif probe and again by SVG
+  export;
+- inline SVG cannot be an image fill (see above).
 
 Still open, so "not yet measured" is not read as "verified":
 
-1. `uploadMediaData` end-to-end with a CRC-valid image (the first probe used a corrupt fixture) —
-   expected to pass, but it is the unverified half of the image path;
-2. whether an `ImageData` carrying `keepAspectRatio: true` changes the fill's fit when assigned to
+1. whether an `ImageData` carrying `keepAspectRatio: true` changes the fill's fit when assigned to
    `fillImage`;
-3. behaviour at the 30 MiB boundary and with a `Content-Length`-less URL;
-4. whether `webp` export succeeds end-to-end through `shape.export`;
-5. whether `connectLibrary(id)` updates `library.connected` synchronously (the fake models it as
-   immediate; the adapter also merges `newlyConnected` as a fallback).
+2. behaviour at the 30 MiB boundary and with a `Content-Length`-less URL;
+3. whether `connectLibrary(id)` updates `library.connected` synchronously (the fake models it as
+   immediate; the adapter also merges `newlyConnected` as a fallback);
+4. remote SVG as an image fill — it failed in this setup, but opaquely; "use the vector path" is the
+   adapter's choice, not a measured host limit.
 
 ## Design tokens: different models
 

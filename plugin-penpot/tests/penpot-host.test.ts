@@ -224,6 +224,24 @@ describe('applyProperties — 外观', () => {
     expect(fake.__uploads.some((entry) => entry.includes('inline.avif'))).toBe(false)
   })
 
+  it('IMAGE 填充为内联 SVG → 如实说明 uploadMediaData 不支持 SVG（不把宿主的 :fills 报错穿透）', async () => {
+    const rect = await host.createNode({ kind: 'rectangle', name: 'IMGSVG' })
+    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>', 'utf8').toString('base64')
+    const result = await host.applyProperties(rect, {
+      fills: [{ type: 'IMAGE', imageData: svg }],
+    })
+    expect(result.skipped.map((s) => s.reason).join(' ')).toMatch(/SVG/)
+    // 守卫在解码后就拦住，不白传一次宿主
+    expect(fake.__uploads).toEqual([])
+  })
+
+  it('节点级 imageUrl 为内联 SVG → 同样如实拒绝（两条入口共用同一守卫）', async () => {
+    const rect = await host.createNode({ kind: 'rectangle', name: 'SVGN' })
+    const svg = `data:image/svg+xml;base64,${Buffer.from('<svg/>', 'utf8').toString('base64')}`
+    const result = await host.applyProperties(rect, { imageUrl: svg } as never)
+    expect(result.skipped.map((s) => s.reason).join(' ')).toMatch(/SVG/)
+  })
+
   it('四边描边走原生 strokes（不创建叠加层）', async () => {
     const rect = await host.createNode({ kind: 'rectangle', name: 'SB4' })
     const result = await host.applyProperties(rect, { strokes: [{ color: '#000000', width: 1 }] })
@@ -1008,5 +1026,36 @@ describe('团队库自动连接（connectLibrary）', () => {
     expect(info.supported).toBe(false)
     expect(info.reason).toMatch(/availableLibraries|connectLibrary/)
     expect(info.newlyConnected).toEqual([])
+  })
+})
+
+// ───────────────────────── 导出（插件沙箱没有 TextDecoder） ─────────────────────────
+// 真机报过：SVG 导出 `Internal error: TextDecoder is not a constructor`。
+
+describe('exportNode', () => {
+  it('SVG 走 utf8Decode（不用 TextDecoder），非 ASCII 正确', async () => {
+    const warm = await host.createNode({ kind: 'rectangle', name: '导出图' })
+
+    const saved = globalThis.TextDecoder
+    // SAFETY: 只为测试把 TextDecoder 换成“一用就抛”的桩；用完在 finally 恢复。
+    globalThis.TextDecoder = (function TextDecoder() {
+      throw new Error('TextDecoder is not a constructor')
+    }) as unknown as typeof TextDecoder
+    try {
+      const svg = await host.exportNode(warm, { format: 'SVG' })
+      expect(svg.isText).toBe(true)
+      expect(svg.mimeType).toBe('image/svg+xml')
+      expect(svg.data).toContain('导出图')
+    } finally {
+      globalThis.TextDecoder = saved
+    }
+  })
+
+  it('WEBP 导出可走通（真机 2.18.1 通过）', async () => {
+    const rect = await host.createNode({ kind: 'rectangle', name: 'WEBP' })
+    const webp = await host.exportNode(rect, { format: 'WEBP' })
+    expect(webp.format).toBe('webp')
+    expect(webp.mimeType).toBe('image/webp')
+    expect(webp.isText).toBe(false)
   })
 })
