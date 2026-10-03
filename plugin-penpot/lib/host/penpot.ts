@@ -36,7 +36,7 @@ import * as tokens from './penpot-tokens'
 import * as textRuns from './penpot-text'
 import { penpotCapFor, toPenpotEffects, toPenpotFills, toPenpotStrokes } from './penpot-paint'
 import { isFillVisible, normalizeFillType } from './gradient'
-import { decodeBase64, inlineMediaName, mimeTypeFromUrl, penpotMediaRejection, sniffImageMime } from './media'
+import { decodeBase64, inlineMediaName, mimeTypeFromUrl, penpotMediaRejection, sniffImageMime, utf8Bytes } from './media'
 import {
   PENPOT_CORNER_KEYS,
   PENPOT_PADDING_KEYS,
@@ -1266,7 +1266,7 @@ export class PenpotHost implements HostAdapter {
       if (!match) throw new Error('data URI 格式无法解析')
       declaredMime = (match[1] || '').trim().toLowerCase() || undefined
       const payload = match[3] ?? ''
-      bytes = match[2] ? decodeBase64(payload) : new TextEncoder().encode(decodeURIComponent(payload))
+      bytes = match[2] ? decodeBase64(payload) : utf8Bytes(decodeURIComponent(payload))
     } else {
       bytes = decodeBase64(value)
     }

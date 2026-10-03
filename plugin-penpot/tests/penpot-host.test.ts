@@ -190,8 +190,10 @@ describe('applyProperties — 外观', () => {
 
   it('IMAGE 填充的裸 base64 imageData → 嗅探为 PNG 后走 uploadMediaData', async () => {
     const rect = await host.createNode({ kind: 'rectangle', name: 'IMGB64' })
-    // 1x1 透明 PNG（裸 base64，无 data: 前缀 —— 客户端渲染引擎的产出形态）
-    const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8AARAAB/wD/AH8AfwAAAABJRU5ErkJggg=='
+    // 1x1 透明 PNG（裸 base64，无 data: 前缀 —— 客户端渲染引擎的产出形态）。
+    // ⚠️ 这段 base64 的 IDAT CRC 是算对过的：旧夹具坏在 IDAT（真机 ImageMagick 直接拒），
+    // 而离线替身不校验字节，所以夹具坏了很久都没被发现。
+    const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII='
     const result = await host.applyProperties(rect, {
       fills: [{ type: 'IMAGE', imageData: base64 }],
     })
@@ -203,7 +205,7 @@ describe('applyProperties — 外观', () => {
   })
 
   it('同一张内联图重复出现只上传一次（按图片数据缓存）', async () => {
-    const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8AARAAB/wD/AH8AfwAAAABJRU5ErkJggg=='
+    const base64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII='
     const a = await host.createNode({ kind: 'rectangle', name: 'IMGC1' })
     const b = await host.createNode({ kind: 'rectangle', name: 'IMGC2' })
     await host.applyProperties(a, { fills: [{ type: 'IMAGE', imageData: base64 }] })
@@ -670,8 +672,8 @@ describe('字体应用：只在能判定时才报「未生效」', () => {
 describe('data: URI 图片走 uploadMediaData', () => {
   it('内联 PNG 会被解码后交给宿主（不是让后端去拉）', async () => {
     const node = await host.createNode({ kind: 'rectangle', name: 'Img', width: 10, height: 10 })
-    // 1x1 透明 PNG
-    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8AARAAB/wD/AH8AfwAAAABJRU5ErkJggg=='
+    // 1x1 透明 PNG（IDAT CRC 已校验：真机 ImageMagick 在校验它，坏的字节会被拒）
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNgAAIAAAUAAen63NgAAAAASUVORK5CYII='
     const applied = await host.applyProperties(node, { imageUrl: png } as never)
 
     expect(applied.skipped.map((x) => x.reason).join(' ')).not.toMatch(/uploadMediaUrl/)

@@ -77,10 +77,48 @@ export function decodeBase64(payload: string): Uint8Array {
   return out
 }
 
+/**
+ * UTF-8 编码。
+ *
+ * ⚠️ 不用 `TextEncoder`：Penpot 插件 iframe 沙箱里**没有它**（真机报
+ * "TextDecoder is not a constructor"；`TextEncoder` 同源风险）。自己编码虽然短一截，
+ * 但它是这条链路能跑的前提。
+ */
+export function utf8Bytes(value: string): Uint8Array {
+  const out: number[] = []
+  for (const ch of value) {
+    const cp = ch.codePointAt(0) as number
+    if (cp < 0x80) out.push(cp)
+    else if (cp < 0x800) out.push(0xc0 | (cp >> 6), 0x80 | (cp & 0x3f))
+    else if (cp < 0x10000) out.push(0xe0 | (cp >> 12), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f))
+    else out.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3f), 0x80 | ((cp >> 6) & 0x3f), 0x80 | (cp & 0x3f))
+  }
+  return new Uint8Array(out)
+}
+
 function ascii(bytes: Uint8Array, start: number, length: number): string {
   let out = ''
   for (let i = start; i < start + length && i < bytes.length; i += 1) out += String.fromCharCode(bytes[i])
   return out
+}
+
+/** 跳过前置空白后，字节是否以 `<svg` 或 `<?xml` 开头（逐字节 ASCII，不依赖 TextDecoder） */
+function startsWithSvgMarkup(bytes: Uint8Array): boolean {
+  const isSpace = (b: number) => b === 0x20 || b === 0x09 || b === 0x0a || b === 0x0d
+  let i = 0
+  while (i < bytes.length && i < 64 && isSpace(bytes[i])) i += 1
+
+  const startsWith = (text: string): boolean => {
+    if (i + text.length > bytes.length) return false
+    for (let k = 0; k < text.length; k += 1) {
+      const lower = text.charCodeAt(k)
+      const upper = lower - 32
+      if (bytes[i + k] !== lower && bytes[i + k] !== upper) return false
+    }
+    return true
+  }
+
+  return startsWith('<svg') || startsWith('<?xml')
 }
 
 /**
@@ -96,9 +134,9 @@ export function sniffImageMime(bytes: Uint8Array): string | undefined {
   if (bytes.length >= 6 && ascii(bytes, 0, 4) === 'GIF8') return 'image/gif'
   if (bytes.length >= 12 && ascii(bytes, 0, 4) === 'RIFF' && ascii(bytes, 8, 4) === 'WEBP') return 'image/webp'
 
-  // SVG 是文本：允许前置空白与 XML 声明
-  const head = new TextDecoder().decode(bytes.slice(0, 512)).trimStart().toLowerCase()
-  if (head.startsWith('<svg') || head.startsWith('<?xml')) return 'image/svg+xml'
+  // SVG 是文本：允许前置空白与 XML 声明。逐字节判定，**不用 TextDecoder** ——
+  // Penpot 插件沙箱里没有它（真机报 "TextDecoder is not a constructor"）。
+  if (startsWithSvgMarkup(bytes)) return 'image/svg+xml'
 
   return undefined
 }

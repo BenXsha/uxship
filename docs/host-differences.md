@@ -226,6 +226,28 @@ From the Penpot 2.18.1 backend (`app/media.clj`, `app/media/validation.clj`, `ap
 `uploadMediaData` goes through the same MIME and size validation, so any future `imageData` path has
 to respect the same five formats and 30 MiB.
 
+### The plugin sandbox is not a browser
+
+Measured on the live host: **`TextDecoder` does not exist in the Penpot plugin iframe**
+(`TextDecoder is not a constructor`), and `TextEncoder` is the same risk. Code that decodes sniffed
+bytes cannot assume either — `lib/host/media.ts` compares SVG markers byte-by-byte and carries its own
+`utf8Bytes()` for non-base64 data URIs. A unit test stubs `TextDecoder` to throw so this cannot
+regress silently.
+
+What *is* present: `atob` (base64 in) and the standard `penpot.*` proxy. Worth probing a global
+before relying on it; "it's a browser API" is not evidence in a sandboxed plugin.
+
+### A corrupt image surfaces as a generic error
+
+`uploadMediaData` stores the bytes and runs ImageMagick `identify` on them
+(`app/media/local.clj`). A malformed image fails there, and the plugin sees only
+`http error` — the useful text (`IDAT: CRC error`) is in the **backend** log, not in the tool
+response. Two consequences:
+
+- when an image upload fails, read `docker logs …penpot-penpot-backend-1` before touching the adapter;
+- **offline fakes do not validate bytes**, so a corrupt fixture (a bad IDAT CRC, say) passes every unit
+test and only fails on the real canvas. Validate test images at least once (`zlib`/`file`).
+
 ### Export (`node_export_image`)
 
 - `Export` is `{type, scale?, suffix?, skipChildren?}` — **no alpha / background / quality option**.
@@ -244,15 +266,24 @@ nothing else (`lib/api/swapComponentHandlers.ts`). An image fill is an override 
 not carried onto a replacement, and `resetOverrides` (the `carryOverOverrides: false` path) discards
 it. An instance swap therefore keeps the master's image, never the instance's.
 
-### Still to measure on a live host
+### Live-host status
 
-Code and vendor types settle the above. These need a running Penpot with a connected plugin, and are
-listed so "not yet measured" is not read as "verified":
+Measured on 2.18.1 with the plugin connected:
 
-1. whether an `ImageData` carrying `keepAspectRatio: true` changes the fill's fit when assigned to
+- `uploadMediaUrl` **works** — a remote HTTPS URL lands as an image fill with empty `skipped`;
+- the plugin sandbox has **no `TextDecoder`/`TextEncoder`** (see above) — found this way;
+- a corrupt image is rejected by ImageMagick with only `http error` surfaced (see above).
+
+Still open, so "not yet measured" is not read as "verified":
+
+1. `uploadMediaData` end-to-end with a CRC-valid image (the first probe used a corrupt fixture) —
+   expected to pass, but it is the unverified half of the image path;
+2. whether an `ImageData` carrying `keepAspectRatio: true` changes the fill's fit when assigned to
    `fillImage`;
-2. behaviour at the 30 MiB boundary and with a `Content-Length`-less URL;
-3. whether `webp` export succeeds end-to-end through `shape.export` on 2.18.1.
+3. behaviour at the 30 MiB boundary and with a `Content-Length`-less URL;
+4. whether `webp` export succeeds end-to-end through `shape.export`;
+5. whether `connectLibrary(id)` updates `library.connected` synchronously (the fake models it as
+   immediate; the adapter also merges `newlyConnected` as a fallback).
 
 ## Design tokens: different models
 
